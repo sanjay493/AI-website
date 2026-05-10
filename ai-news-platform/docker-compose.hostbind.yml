@@ -1,0 +1,15 @@
+# Optional: use with docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.hostbind.yml
+# so Next/FastAPI are only reachable via Nginx on 127.0.0.1 (recommended with reverse proxy).
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.hostbind.yml --env-file .env.production up -d --build
+#
+# Remove or avoid publishing postgres/redis to the public internet in production (close 5432/6379 in firewall).
+
+services:
+  api:
+    ports:
+      - "127.0.0.1:8000:8000"
+
+  web:
+    ports:
+      - "127.0.0.1:3000:3000"

@@ -1,31 +1,36 @@
 # Deploy to Hostinger **VPS** (or any Linux host with Docker + Compose v2).
-# Not suitable for PHP-only/shared hosting — use a VPS with SSH + Docker installed.
 #
-# GitHub secrets to create (Repository → Settings → Secrets → Actions):
-#   VPS_HOST            — IP or hostname
-#   VPS_USER            — e.g. root or deploy
-#   VPS_SSH_KEY         — private key (pem) with access to the server
-#   VPS_DEPLOY_PATH     — absolute path to this repo clone, e.g. /opt/ai-news-platform
+# GitHub secrets (Repository → Settings → Secrets → Actions → New repository secret):
+#   VPS_HOST        — SSH host (e.g. 45.195.159.159)
+#   VPS_USER        — SSH user (e.g. root)
+#   VPS_SSH_KEY     — Private key PEM (full file contents)
+#   VPS_DEPLOY_PATH — Directory that contains docker-compose.yml, e.g. /opt/AI-website/ai-news-platform
+#   VPS_REPO_PATH   — (Optional) Git repo root containing .git, e.g. /opt/AI-website
+#                     Omit if clone root is the same folder as VPS_DEPLOY_PATH.
 #
-# On the server (once): install Docker + Compose plugin, clone repo, add `.env.production`
-# using `.env.production.example`, enable UFW/firewall for 22/80/443 as needed.
+# On the server (once): Docker, clone repo, .env.production, Nginx on 80/443 (see deploy/nginx/*.example).
 
 name: Deploy VPS (Hostinger)
 
-# CD: SSH into your Hostinger VPS and rebuild Compose. Uncomment `push` for auto-deploy on main.
 on:
   workflow_dispatch:
-  # push:
-  #   branches: [main, master]
+  workflow_run:
+    workflows: ["CI"]
+    types:
+      - completed
+    branches: [main, master]
 
 concurrency:
-  group: deploy-vps-${{ github.ref }}
+  group: deploy-vps
   cancel-in-progress: true
 
 jobs:
   deploy:
     runs-on: ubuntu-latest
-    if: github.ref == 'refs/heads/main' || github.ref == 'refs/heads/master'
+    if: >-
+      ${{ github.event_name == 'workflow_dispatch'
+      || (github.event.workflow_run.conclusion == 'success'
+          && github.event.workflow_run.event == 'push') }}
     steps:
       - name: Deploy over SSH
         uses: appleboy/ssh-action@v1.2.2
@@ -36,9 +41,16 @@ jobs:
           script_stop: true
           script: |
             set -euo pipefail
-            cd "${{ secrets.VPS_DEPLOY_PATH }}"
+            COMPOSE_DIR="${{ secrets.VPS_DEPLOY_PATH }}"
+            REPO_ROOT="${{ secrets.VPS_REPO_PATH }}"
+            if [ -z "${REPO_ROOT:-}" ]; then
+              REPO_ROOT="$COMPOSE_DIR"
+            fi
+            REF_NAME='${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}'
+            cd "$REPO_ROOT"
             git fetch origin
-            git checkout "${{ github.ref_name }}"
-            git pull --ff-only origin "${{ github.ref_name }}"
+            git checkout "$REF_NAME"
+            git pull --ff-only origin "$REF_NAME"
+            cd "$COMPOSE_DIR"
             docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production pull || true
             docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build --remove-orphans

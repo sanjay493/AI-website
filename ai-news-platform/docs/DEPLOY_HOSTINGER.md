@@ -116,7 +116,7 @@ Detailed proxy config depends on what you choose; the important rule is **public
 
 ### 1. Push the repo
 
-1. Ensure the repository root matches this layout (`docker-compose.yml` at repo root alongside `frontend/`, `backend/`).
+1. Repo layout: Git root contains **`ai-news-platform/`** with `docker-compose.yml` inside it (use that folder for `VPS_DEPLOY_PATH`).
 2. Push to **`main`** (or **`master`**), which matches our CI and deploy workflows.
 
 ### 2. Confirm CI passes
@@ -136,7 +136,8 @@ Create these secrets:
 | `VPS_HOST` | Your VPS IPv4 or hostname (`api.` host is wrong here — use the **server IP** or SSH hostname). |
 | `VPS_USER` | SSH user, e.g. `root` or `ubuntu`. |
 | `VPS_SSH_KEY` | **Private** key PEM (whole file contents, including `BEGIN`/`END`). |
-| `VPS_DEPLOY_PATH` | Absolute path **on the server** to the cloned repo (e.g. `/opt/ai-news-platform`). No trailing slash. |
+| `VPS_DEPLOY_PATH` | Directory **on the server** that contains `docker-compose.yml` (e.g. `/opt/AI-website/ai-news-platform`). No trailing slash. |
+| `VPS_REPO_PATH` | *(Optional)* Git **repo root** (folder with `.git`), e.g. `/opt/AI-website`. Omit if compose lives at repo root (`VPS_REPO_PATH` = `VPS_DEPLOY_PATH`). |
 
 Generate an SSH key pair **only for deploy**:
 
@@ -167,16 +168,11 @@ The job SSHs into the server, **`git pull`**, then builds and starts containers 
 
 `docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build`
 
-### 6. Optional: deploy automatically on every push
+### 6. Automatic deploy after CI
 
-Edit `.github/workflows/deploy-hostinger-vps.yml` on GitHub or locally and uncomment:
+On **push** to **`main`** or **`master`**, when the **CI** workflow finishes successfully, **Deploy VPS (Hostinger)** runs automatically (`workflow_run` trigger).
 
-```yaml
-  push:
-    branches: [main, master]
-```
-
-Commit and push. Every push to `main`/`master` will redeploy **after CI** (remember: Actions run in parallel unless you combine jobs with `needs:`).
+You can still deploy manually anytime: **Actions → Deploy VPS (Hostinger) → Run workflow**.
 
 ---
 
@@ -188,7 +184,7 @@ Commit and push. Every push to `main`/`master` will redeploy **after CI** (remem
 2. Check containers on the VPS:
 
 ```bash
-cd /opt/ai-news-platform   # same as VPS_DEPLOY_PATH
+cd /opt/AI-website/ai-news-platform   # same as VPS_DEPLOY_PATH
 docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production ps
 ```
 
