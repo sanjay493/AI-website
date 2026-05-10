@@ -4,30 +4,40 @@ import { GeistSans } from "geist/font/sans";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { AuthProvider } from "@/components/providers/auth-provider";
-import { getSiteUrl } from "@/lib/site-config";
+import {
+  getSiteUrl,
+  SITE_META_DESCRIPTION,
+  SITE_NAME,
+  SITE_OG_TITLE,
+} from "@/lib/site-config";
 import "./globals.css";
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
   title: {
-    default: "AI Signal — AI news, articles, tutorials, trends",
-    template: "%s · AI Signal",
+    default: SITE_OG_TITLE,
+    template: `%s · ${SITE_NAME}`,
   },
-  description:
-    "A Next.js frontend for AI news, long-form articles, tutorials, and trend analysis — ready to connect to your API.",
+  description: SITE_META_DESCRIPTION,
   openGraph: {
     type: "website",
-    siteName: "AI Signal",
+    siteName: SITE_NAME,
     locale: "en_US",
-    title: "AI Signal — AI news, articles, tutorials, trends",
-    description:
-      "A Next.js frontend for AI news, long-form articles, tutorials, and trend analysis — ready to connect to your API.",
+    title: SITE_OG_TITLE,
+    description: SITE_META_DESCRIPTION,
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: SITE_OG_TITLE,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
-    title: "AI Signal — AI news, articles, tutorials, trends",
-    description:
-      "A Next.js frontend for AI news, long-form articles, tutorials, and trend analysis — ready to connect to your API.",
+    title: SITE_OG_TITLE,
+    description: SITE_META_DESCRIPTION,
   },
   robots: {
     index: true,

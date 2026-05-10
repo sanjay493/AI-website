@@ -7,22 +7,36 @@ import { categories } from "@/lib/content";
 import { loadArticles } from "@/lib/public-articles";
 import {
   absoluteUrl,
+  SITE_META_DESCRIPTION,
   SITE_NAME,
+  SITE_OG_TITLE,
   SITE_TAGLINE,
 } from "@/lib/site-config";
 
 export const metadata: Metadata = {
   alternates: { canonical: "/" },
-  title: { absolute: `${SITE_NAME} — ${SITE_TAGLINE}` },
-  description: SITE_TAGLINE,
+  title: { absolute: SITE_OG_TITLE },
+  description: SITE_META_DESCRIPTION,
   openGraph: {
-    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-    description: SITE_TAGLINE,
+    type: "website",
+    siteName: SITE_NAME,
+    locale: "en_US",
+    title: SITE_OG_TITLE,
+    description: SITE_META_DESCRIPTION,
     url: "/",
+    images: [
+      {
+        url: "/opengraph-image",
+        width: 1200,
+        height: 630,
+        alt: `${SITE_NAME} — ${SITE_TAGLINE}`,
+      },
+    ],
   },
   twitter: {
-    title: `${SITE_NAME} — ${SITE_TAGLINE}`,
-    description: SITE_TAGLINE,
+    card: "summary_large_image",
+    title: SITE_OG_TITLE,
+    description: SITE_META_DESCRIPTION,
   },
 };
 
@@ -47,14 +61,14 @@ export default async function HomePage() {
               "@id": orgId,
               name: SITE_NAME,
               url: orgUrl,
-              description: SITE_TAGLINE,
+              description: SITE_META_DESCRIPTION,
             },
             {
               "@type": "WebSite",
               "@id": siteId,
               name: SITE_NAME,
               url: orgUrl,
-              description: SITE_TAGLINE,
+              description: SITE_META_DESCRIPTION,
               inLanguage: "en",
               publisher: { "@id": orgId },
             },
