@@ -5,6 +5,7 @@ import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import {
+  absoluteUrl,
   getSiteUrl,
   SITE_META_DESCRIPTION,
   SITE_NAME,
@@ -38,6 +39,7 @@ export const metadata: Metadata = {
     card: "summary_large_image",
     title: SITE_OG_TITLE,
     description: SITE_META_DESCRIPTION,
+    images: [absoluteUrl("/opengraph-image")],
   },
   robots: {
     index: true,

@@ -1,3 +1,4 @@
+import Image from "next/image";
 import Link from "next/link";
 import { AuthNav } from "@/components/auth-nav";
 import { categories } from "@/lib/content";
@@ -8,8 +9,16 @@ export function SiteHeader() {
       <div className="mx-auto flex h-14 max-w-5xl items-center justify-between gap-4 px-4 sm:px-6">
         <Link
           href="/"
-          className="font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
+          className="flex items-center gap-2 font-semibold tracking-tight text-zinc-900 dark:text-zinc-50"
         >
+          <Image
+            src="/icon.png"
+            alt=""
+            width={28}
+            height={28}
+            className="rounded-md"
+            priority
+          />
           AI Signal
         </Link>
         <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">

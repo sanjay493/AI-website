@@ -35,11 +35,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       siteName: "AI Signal",
       locale: "en_US",
       ...(category?.name ? { section: category.name } : {}),
+      images: [
+        {
+          url: "/opengraph-image",
+          width: 1200,
+          height: 630,
+          alt: `${article.title} · AI Signal`,
+        },
+      ],
     },
     twitter: {
       card: "summary_large_image",
       title: article.title,
       description: article.excerpt,
+      images: [absoluteUrl("/opengraph-image")],
     },
   };
 }
@@ -117,6 +126,11 @@ export default async function ArticlePage({ params }: Props) {
             "@type": "Organization",
             name: "AI Signal",
             url: absoluteUrl("/"),
+          },
+          image: {
+            "@type": "ImageObject",
+            url: absoluteUrl("/opengraph-image"),
+            caption: article.title,
           },
           ...(category?.name
             ? { articleSection: category.name }

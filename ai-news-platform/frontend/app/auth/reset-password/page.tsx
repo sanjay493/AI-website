@@ -3,7 +3,7 @@
 import { Suspense, useMemo, useState } from "react";
 import Link from "next/link";
 import { useSearchParams } from "next/navigation";
-import { resetPassword } from "@/lib/auth-api";
+import { resetPassword } from "@/lib/auth-credentials";
 
 function ResetInner() {
   const searchParams = useSearchParams();

@@ -9,13 +9,7 @@ import {
   useState,
 } from "react";
 import { getApiUrl } from "@/lib/api-base";
-import {
-  fetchMe,
-  loginAccount,
-  logoutRemote,
-  refreshTokens,
-  registerAccount,
-} from "@/lib/auth-api";
+import { fetchMe, logoutRemote, refreshTokens } from "@/lib/auth-session";
 import {
   clearTokens,
   getStoredAccess,
@@ -125,6 +119,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, []);
 
   const signIn = useCallback(async (email: string, password: string) => {
+    const { loginAccount } = await import("@/lib/auth-credentials");
     const pair = await loginAccount({ email, password });
     persistTokens(pair.access_token, pair.refresh_token);
     const me = await fetchMe(pair.access_token);
@@ -139,6 +134,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       password: string;
       full_name?: string | null;
     }) => {
+      const { registerAccount } = await import("@/lib/auth-credentials");
       const pair = await registerAccount(input);
       persistTokens(pair.access_token, pair.refresh_token);
       const me = await fetchMe(pair.access_token);
