@@ -39,17 +39,19 @@ jobs:
           username: ${{ secrets.VPS_USER }}
           key: ${{ secrets.VPS_SSH_KEY }}
           script: |
-            set -euo pipefail
+            set -exuo pipefail
             COMPOSE_DIR="${{ secrets.VPS_DEPLOY_PATH }}"
             REPO_ROOT="${{ secrets.VPS_REPO_PATH }}"
-            if [ -z "${REPO_ROOT:-}" ]; then
-              REPO_ROOT="$COMPOSE_DIR"
-            fi
+            if [ -z "${REPO_ROOT:-}" ]; then REPO_ROOT="$COMPOSE_DIR"; fi
             REF_NAME='${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}'
+            echo "Deploy: REPO_ROOT=$REPO_ROOT COMPOSE_DIR=$COMPOSE_DIR REF_NAME=$REF_NAME"
+            test -n "$COMPOSE_DIR" || { echo 'Missing secret VPS_DEPLOY_PATH'; exit 1; }
+            test -d "$REPO_ROOT/.git" || { echo "Not a git repo: $REPO_ROOT (set VPS_REPO_PATH to folder containing .git)"; exit 1; }
+            test -f "$COMPOSE_DIR/docker-compose.yml" || { echo "No compose file in VPS_DEPLOY_PATH=$COMPOSE_DIR"; exit 1; }
             cd "$REPO_ROOT"
-            git fetch origin
-            git checkout "$REF_NAME"
-            git pull --ff-only origin "$REF_NAME"
+            git fetch origin --prune
+            git checkout -B "$REF_NAME" "origin/$REF_NAME"
             cd "$COMPOSE_DIR"
+            test -f .env.production || { echo "Missing .env.production in COMPOSE_DIR (create on server, never commit)"; exit 1; }
             docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production pull || true
             docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build --remove-orphans
