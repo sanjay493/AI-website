@@ -43,11 +43,9 @@ jobs:
             set -exuo pipefail
             COMPOSE_DIR="${{ secrets.VPS_DEPLOY_PATH }}"
             REPO_ROOT="${{ secrets.VPS_REPO_PATH }}"
-            # Strip leading/trailing whitespace (Secrets often pasted with stray spaces/newlines)
-            COMPOSE_DIR="${COMPOSE_DIR#"${COMPOSE_DIR%%[![:space:]]*}"}"
-            COMPOSE_DIR="${COMPOSE_DIR%"${COMPOSE_DIR##*[![:space:]]}"}"
-            REPO_ROOT="${REPO_ROOT#"${REPO_ROOT%%[![:space:]]*}"}"
-            REPO_ROOT="${REPO_ROOT%"${REPO_ROOT##*[![:space:]]}"}"
+            # Trim leading/trailing whitespace and CR (incorrect bash `#%%` trims broke paths with no spaces)
+            COMPOSE_DIR="$(printf '%s' "$COMPOSE_DIR" | sed 's/\r//g;s/^[[:space:]]*//;s/[[:space:]]*$//')"
+            REPO_ROOT="$(printf '%s' "$REPO_ROOT" | sed 's/\r//g;s/^[[:space:]]*//;s/[[:space:]]*$//')"
             if [ -z "${REPO_ROOT:-}" ]; then REPO_ROOT="$COMPOSE_DIR"; fi
             REF_NAME='${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}'
             echo "Deploy: REPO_ROOT=$REPO_ROOT COMPOSE_DIR=$COMPOSE_DIR REF_NAME=$REF_NAME"
