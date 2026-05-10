@@ -32,6 +32,7 @@ Deployment
 
 Frontend → Vercel
 Backend → Railway / Render
+Alternative: VPS (e.g. Hostinger) + Docker + GitHub Actions — see docs/DEPLOY_HOSTINGER.md
 
 Folder structure Cursor should build
 ai-news-platform/

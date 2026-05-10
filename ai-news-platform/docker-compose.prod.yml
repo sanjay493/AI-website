@@ -1,0 +1,28 @@
+# Production overlays (same repo path as docker-compose.yml on the VPS).
+# Usage on server:
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production up -d --build
+#
+# Set NEXT_PUBLIC_* and CORS/front URLs to your real HTTPS domains.
+
+services:
+  api:
+    environment:
+      ENVIRONMENT: production
+      DEBUG: "false"
+      CORS_ORIGINS: ${CORS_ORIGINS}
+      FRONTEND_BASE_URL: ${FRONTEND_BASE_URL}
+      SECRET_KEY: ${SECRET_KEY}
+      ALLOWED_HOSTS: ${ALLOWED_HOSTS:-}
+      FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-}
+
+  web:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+      args:
+        NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+    environment:
+      NODE_ENV: production
+      SERVER_API_URL: http://api:8000/api/v1
+      NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL}
+      NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}
