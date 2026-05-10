@@ -4,7 +4,8 @@
 #   VPS_HOST        — SSH host (e.g. 45.195.159.159)
 #   VPS_USER        — SSH user (e.g. root)
 #   VPS_SSH_KEY     — Private key PEM (full file contents)
-#   VPS_DEPLOY_PATH — Directory that contains docker-compose.yml, e.g. /opt/AI-website/ai-news-platform
+#   VPS_DEPLOY_PATH — Absolute path — directory that contains docker-compose.yml, e.g.
+#                     /opt/AI-website/ai-news-platform — no trailing space or newline.
 #   VPS_REPO_PATH   — (Optional) Git repo root containing .git, e.g. /opt/AI-website
 #                     Omit if clone root is the same folder as VPS_DEPLOY_PATH.
 #
@@ -42,12 +43,21 @@ jobs:
             set -exuo pipefail
             COMPOSE_DIR="${{ secrets.VPS_DEPLOY_PATH }}"
             REPO_ROOT="${{ secrets.VPS_REPO_PATH }}"
+            # Strip leading/trailing whitespace (Secrets often pasted with stray spaces/newlines)
+            COMPOSE_DIR="${COMPOSE_DIR#"${COMPOSE_DIR%%[![:space:]]*}"}"
+            COMPOSE_DIR="${COMPOSE_DIR%"${COMPOSE_DIR##*[![:space:]]}"}"
+            REPO_ROOT="${REPO_ROOT#"${REPO_ROOT%%[![:space:]]*}"}"
+            REPO_ROOT="${REPO_ROOT%"${REPO_ROOT##*[![:space:]]}"}"
             if [ -z "${REPO_ROOT:-}" ]; then REPO_ROOT="$COMPOSE_DIR"; fi
             REF_NAME='${{ github.event_name == 'workflow_run' && github.event.workflow_run.head_branch || github.ref_name }}'
             echo "Deploy: REPO_ROOT=$REPO_ROOT COMPOSE_DIR=$COMPOSE_DIR REF_NAME=$REF_NAME"
             test -n "$COMPOSE_DIR" || { echo 'Missing secret VPS_DEPLOY_PATH'; exit 1; }
             test -d "$REPO_ROOT/.git" || { echo "Not a git repo: $REPO_ROOT (set VPS_REPO_PATH to folder containing .git)"; exit 1; }
-            test -f "$COMPOSE_DIR/docker-compose.yml" || { echo "No compose file in VPS_DEPLOY_PATH=$COMPOSE_DIR"; exit 1; }
+            test -f "$COMPOSE_DIR/docker-compose.yml" || {
+              echo "No docker-compose.yml in VPS_DEPLOY_PATH=$COMPOSE_DIR"
+              ls -la "$COMPOSE_DIR" || true
+              exit 1
+            }
             cd "$REPO_ROOT"
             git fetch origin --prune
             git checkout -B "$REF_NAME" "origin/$REF_NAME"
