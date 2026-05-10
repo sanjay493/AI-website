@@ -37,11 +37,15 @@ export async function adminListArticles(
   token: string,
   params?: { category?: string; limit?: number; offset?: number },
 ): Promise<PageResp> {
-  const url = new URL(`${getApiUrl()}/admin/articles`);
-  url.searchParams.set("limit", String(params?.limit ?? 50));
-  url.searchParams.set("offset", String(params?.offset ?? 0));
-  if (params?.category) url.searchParams.set("category", params.category);
-  const res = await fetch(url.toString(), {
+  const path = `${getApiUrl().replace(/\/$/, "")}/admin/articles`;
+  const search = new URLSearchParams({
+    limit: String(params?.limit ?? 50),
+    offset: String(params?.offset ?? 0),
+  });
+  if (params?.category) search.set("category", params.category);
+  const qs = search.toString();
+  const url = qs ? `${path}?${qs}` : path;
+  const res = await fetch(url, {
     headers: authHeaders(token),
     cache: "no-store",
   });
