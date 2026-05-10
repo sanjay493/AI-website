@@ -1,6 +1,10 @@
+import { cache } from "react";
+
 import type { Article } from "@/lib/content";
 import { articles as fallbackArticles } from "@/lib/content";
 import { getServerApiUrl } from "@/lib/server-api";
+
+const fetchTimeoutMs = 12_000;
 
 type PageResp<T> = {
   items: T[];
@@ -63,6 +67,7 @@ export async function loadArticles(options?: {
     if (options?.category) url.searchParams.set("category", options.category);
     const res = await fetch(url.toString(), {
       next: { revalidate: 30 },
+      signal: AbortSignal.timeout(fetchTimeoutMs),
     });
     if (!res.ok) {
       throw new Error(await res.text());
@@ -76,7 +81,9 @@ export async function loadArticles(options?: {
   }
 }
 
-export async function loadArticleBySlug(slug: string): Promise<Article | null> {
+async function loadArticleBySlugUncached(
+  slug: string,
+): Promise<Article | null> {
   const base = getServerApiUrl();
   if (!base) {
     return fallbackArticles.find((a) => a.slug === slug) ?? null;
@@ -84,6 +91,7 @@ export async function loadArticleBySlug(slug: string): Promise<Article | null> {
   try {
     const res = await fetch(`${base}/articles/${encodeURIComponent(slug)}`, {
       next: { revalidate: 30 },
+      signal: AbortSignal.timeout(fetchTimeoutMs),
     });
     if (!res.ok) return null;
     const full = (await res.json()) as ApiArticleFull;
@@ -92,6 +100,9 @@ export async function loadArticleBySlug(slug: string): Promise<Article | null> {
     return fallbackArticles.find((a) => a.slug === slug) ?? null;
   }
 }
+
+/** Dedupes metadata + page during static generation (avoids duplicate slow fetches per slug). */
+export const loadArticleBySlug = cache(loadArticleBySlugUncached);
 
 export async function loadArticleSlugs(): Promise<{ slug: string }[]> {
   const rows = await loadArticles();
