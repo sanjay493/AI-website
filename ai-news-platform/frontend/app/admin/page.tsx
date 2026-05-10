@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
-import { fetchAdminStatus } from "@/lib/auth-api";
+import { fetchAdminStatus } from "@/lib/auth-credentials";
 
 export default function AdminPage() {
   const { accessToken, user, loading } = useAuth();

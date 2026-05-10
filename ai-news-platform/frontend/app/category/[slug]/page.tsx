@@ -4,6 +4,7 @@ import { notFound } from "next/navigation";
 import { ArticleCard } from "@/components/article-card";
 import { categories, getCategoryBySlug } from "@/lib/content";
 import { loadArticles } from "@/lib/public-articles";
+import { absoluteUrl, SITE_NAME } from "@/lib/site-config";
 
 type Props = { params: Promise<{ slug: string }> };
 
@@ -24,10 +25,20 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
       description: category.description,
       url: `/category/${category.slug}`,
       type: "website",
+      images: [
+        {
+          url: "/opengraph-image",
+          width: 1200,
+          height: 630,
+          alt: `${category.name} · ${SITE_NAME}`,
+        },
+      ],
     },
     twitter: {
+      card: "summary_large_image",
       title: `${category.name} · AI Signal`,
       description: category.description,
+      images: [absoluteUrl("/opengraph-image")],
     },
   };
 }
