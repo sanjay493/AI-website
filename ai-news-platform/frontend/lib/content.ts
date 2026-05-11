@@ -13,6 +13,10 @@ export type Article = {
   readingTimeMinutes: number;
   /** Plain paragraphs for the boilerplate; replace with CMS later */
   paragraphs: string[];
+  /** Hero / thumbnail (e.g. YouTube still). */
+  coverImageUrl?: string | null;
+  /** Canonical off-site link (e.g. watch URL). */
+  externalUrl?: string | null;
 };
 
 export const categories: Category[] = [

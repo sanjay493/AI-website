@@ -9,6 +9,8 @@ export type AdminArticle = {
   published_at: string;
   reading_time_minutes: number;
   paragraphs: string[];
+  cover_image_url?: string | null;
+  external_url?: string | null;
 };
 
 type PageResp = {

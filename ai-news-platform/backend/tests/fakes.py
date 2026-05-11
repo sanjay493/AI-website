@@ -36,6 +36,8 @@ class FakeArticleRepository:
                 published_at=date(2024, 1, 1),
                 reading_time_minutes=5,
                 paragraphs=["Hello"],
+                cover_image_url=None,
+                external_url=None,
             )
         return None
 

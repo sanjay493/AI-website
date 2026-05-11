@@ -19,10 +19,13 @@ def test_youtube_api_payload_to_feed_items() -> None:
     items = youtube_items_from_api_payload(payload)
     assert len(items) == 1
     assert items[0].link == "https://www.youtube.com/watch?v=abc123"
-    assert "YouTube trending" in items[0].title
+    assert items[0].thumbnail_url
+    assert "Model release" in items[0].title
     art = _to_article_create(items[0])
     assert art is not None
     assert art.slug.startswith("feed-")
+    assert art.external_url == "https://www.youtube.com/watch?v=abc123"
+    assert art.cover_image_url
 
 
 def test_parse_rss_basic() -> None:

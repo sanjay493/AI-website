@@ -18,6 +18,8 @@ type ApiArticleListRow = {
   category: string;
   published_at: string;
   reading_time_minutes: number;
+  cover_image_url?: string | null;
+  external_url?: string | null;
 };
 
 type ApiArticleFull = ApiArticleListRow & { paragraphs: string[] };
@@ -31,6 +33,8 @@ export function apiToArticleMinimal(row: ApiArticleListRow): Article {
     publishedAt: row.published_at,
     readingTimeMinutes: row.reading_time_minutes,
     paragraphs: [],
+    coverImageUrl: row.cover_image_url ?? null,
+    externalUrl: row.external_url ?? null,
   };
 }
 
@@ -43,6 +47,8 @@ export function apiToArticle(full: ApiArticleFull): Article {
     publishedAt: full.published_at,
     readingTimeMinutes: full.reading_time_minutes,
     paragraphs: full.paragraphs,
+    coverImageUrl: full.cover_image_url ?? null,
+    externalUrl: full.external_url ?? null,
   };
 }
 

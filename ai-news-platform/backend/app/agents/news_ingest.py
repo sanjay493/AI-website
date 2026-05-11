@@ -69,6 +69,7 @@ class FeedItem:
     link: str
     summary: str
     published: date | None
+    thumbnail_url: str | None = None
 
 
 def parse_feed_xml(xml_bytes: bytes, *, feed_url: str) -> list[FeedItem]:
@@ -160,11 +161,91 @@ def _parse_rss(rss_el: ET.Element) -> list[FeedItem]:
     return out
 
 
+def _is_youtube_watch(url: str) -> bool:
+    u = url.lower()
+    return "youtube.com/watch" in u or "youtu.be/" in u
+
+
+def _youtube_thumbnail_from_snippet(sn: dict) -> str | None:
+    thumbs = sn.get("thumbnails")
+    if not isinstance(thumbs, dict):
+        return None
+    for key in ("maxres", "standard", "high", "medium", "default"):
+        t = thumbs.get(key)
+        if isinstance(t, dict) and t.get("url"):
+            return str(t["url"])[:2048]
+    return None
+
+
+def _compact_youtube_description(desc: str, max_len: int = 320) -> str:
+    """First meaningful lines; avoid full description / credits wall."""
+    if not desc or not desc.strip():
+        return ""
+    lines_out: list[str] = []
+    for raw in desc.splitlines():
+        s = raw.strip()
+        if not s:
+            if lines_out:
+                break
+            continue
+        low = s.lower()
+        if s.startswith(("#", "@", "▶")) or s.startswith(("http://", "https://")):
+            if lines_out:
+                break
+            continue
+        if "subscribe" in low and len(s) < 140:
+            break
+        lines_out.append(s)
+        if len(" ".join(lines_out)) >= max_len:
+            break
+    text = " ".join(lines_out).strip()
+    if len(text) > max_len:
+        text = text[: max_len - 1].rsplit(" ", 1)[0] + "…"
+    return text
+
+
+def _short_card_excerpt(text: str, fallback: str, max_chars: int = 360) -> str:
+    t = (text or "").strip()
+    if not t:
+        t = fallback.strip()
+    if len(t) <= max_chars:
+        return t
+    return t[: max_chars - 1].rsplit(" ", 1)[0] + "…"
+
+
+def _clean_youtube_title(title: str) -> str:
+    return re.sub(r"^\[YouTube trending\]\s*", "", title, flags=re.I).strip() or title
+
+
 def _to_article_create(item: FeedItem) -> ArticleCreate | None:
     if not item.link or not item.link.startswith(("http://", "https://")):
         return None
     slug = _slug_for_url(item.link)
-    title = item.title.strip()[:500] or "Untitled"
+    title = _clean_youtube_title(item.title.strip()[:500]) or "Untitled"
+    is_yt = _is_youtube_watch(item.link)
+
+    if is_yt:
+        excerpt = _short_card_excerpt(item.summary.strip(), title, 360)
+        if not excerpt:
+            excerpt = title
+        excerpt = excerpt[:5000]
+        paras = [
+            excerpt,
+            f"Watch on YouTube: {item.link}",
+        ]
+        rtm = max(1, min(5, _estimate_reading_minutes("\n\n".join(paras))))
+        return ArticleCreate(
+            slug=slug,
+            title=title,
+            excerpt=excerpt,
+            category=ArticleCategory.news,
+            published_at=item.published or date.today(),
+            reading_time_minutes=rtm,
+            paragraphs=paras,
+            cover_image_url=item.thumbnail_url,
+            external_url=item.link,
+        )
+
     summary = item.summary.strip()
     if not summary:
         summary = title
@@ -184,6 +265,8 @@ def _to_article_create(item: FeedItem) -> ArticleCreate | None:
         published_at=pub,
         reading_time_minutes=rtm,
         paragraphs=paras,
+        cover_image_url=item.thumbnail_url,
+        external_url=None,
     )
 
 
@@ -208,18 +291,21 @@ def youtube_items_from_api_payload(payload: dict) -> list[FeedItem]:
             continue
         title = (sn.get("title") or "").strip()
         desc_raw = (sn.get("description") or "").strip()
-        desc = desc_raw[:4000]
+        short = _compact_youtube_description(desc_raw) or (title or "YouTube video")
+        thumb = _youtube_thumbnail_from_snippet(sn) or (
+            f"https://i.ytimg.com/vi/{vid_id}/hqdefault.jpg"
+        )
         pub_raw = sn.get("publishedAt")
         pub = _parse_date_atom(pub_raw) if isinstance(pub_raw, str) else None
         link = f"https://www.youtube.com/watch?v={vid_id}"
         display_title = title or "YouTube video"
-        summary = desc or display_title
         out.append(
             FeedItem(
-                title=f"[YouTube trending] {display_title}",
+                title=display_title[:500],
                 link=link,
-                summary=summary,
+                summary=short,
                 published=pub,
+                thumbnail_url=thumb,
             ),
         )
     return out

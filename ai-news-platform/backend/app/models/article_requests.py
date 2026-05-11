@@ -31,6 +31,8 @@ class ArticleCreate(BaseModel):
     published_at: date
     reading_time_minutes: int = Field(ge=1, le=240)
     paragraphs: list[str] = Field(min_length=1)
+    cover_image_url: str | None = Field(default=None, max_length=2048)
+    external_url: str | None = Field(default=None, max_length=2048)
 
     @field_validator("slug")
     @classmethod
@@ -74,6 +76,8 @@ class ArticleUpdate(BaseModel):
     published_at: date | None = None
     reading_time_minutes: int | None = Field(default=None, ge=1, le=240)
     paragraphs: list[str] | None = None
+    cover_image_url: str | None = Field(default=None, max_length=2048)
+    external_url: str | None = Field(default=None, max_length=2048)
 
     @model_validator(mode="after")
     def at_least_one_field(self) -> ArticleUpdate:
@@ -119,3 +123,5 @@ class ArticleAdminOut(BaseModel):
     published_at: date
     reading_time_minutes: int
     paragraphs: list[str]
+    cover_image_url: str | None = None
+    external_url: str | None = None
