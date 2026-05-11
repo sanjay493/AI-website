@@ -51,6 +51,9 @@ services:
       REDIS_URL: redis://redis:6379/0
       SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production}
       FRONTEND_BASE_URL: http://localhost:${WEB_HOST_PORT:-3000}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      NEWS_INGEST_CRON_SECRET: ${NEWS_INGEST_CRON_SECRET:-}
+      NEWS_INGEST_FEED_URLS: ${NEWS_INGEST_FEED_URLS:-}
       # Bash-style default: '-' after ':' (see https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)
       FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-sanjayism@gmail.com}
     ports:
@@ -74,6 +77,7 @@ services:
       PORT: "3000"
       HOSTNAME: 0.0.0.0
       # Browser hits same-origin /api/v1; Next rewrites to the api container.
+      INTERNAL_API_ORIGIN: http://api:8000
       SERVER_API_URL: http://api:8000/api/v1
       NEXT_PUBLIC_API_URL: /api/v1
       # Canonical URLs, sitemap, OG — must match the port you browse (see WEB_HOST_PORT).
