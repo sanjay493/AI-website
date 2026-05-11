@@ -27,6 +27,7 @@ def get_article_repo(
     return ArticleRepository(session)
 
 
+@router.get("", response_model=Page[ArticleAdminOut])
 @router.get("/", response_model=Page[ArticleAdminOut])
 @limiter.limit("200/minute")
 async def list_admin_articles(
@@ -44,6 +45,7 @@ async def list_admin_articles(
     )
 
 
+@router.post("", response_model=ArticleAdminOut, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=ArticleAdminOut, status_code=status.HTTP_201_CREATED)
 @limiter.limit("60/minute")
 async def create_article(

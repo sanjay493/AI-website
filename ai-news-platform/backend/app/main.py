@@ -36,6 +36,9 @@ def create_app(*, enable_lifespan: bool = True) -> FastAPI:
         lifespan=app_lifespan if enable_lifespan else None,
         docs_url="/docs" if settings.debug else None,
         redoc_url="/redoc" if settings.debug else None,
+        # Next.js rewrites `/api/v1/*` to `http://api:8000/...`; Starlette slash redirects would
+        # otherwise send `Location: http://api:8000/...`, which browsers cannot follow.
+        redirect_slashes=False,
     )
     application.state.limiter = limiter
     application.add_exception_handler(RateLimitExceeded, _rate_limit_exceeded_handler)

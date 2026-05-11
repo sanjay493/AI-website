@@ -220,6 +220,7 @@ Example **weekly** (Monday 06:00 UTC): `0 6 * * 1` in `crontab` on the VPS.
 | CORS errors in browser | `CORS_ORIGINS` includes exact site origin (`https://…`, no typo). |
 | Next.js calls wrong API | `NEXT_PUBLIC_API_URL` in `.env.production` and **rebuilt** frontend image (`--build`). |
 | 502 Bad Gateway via proxy | Upstream URLs and ports (**3000** / **8000**) match Compose; firewall allows loopback proxy. |
+| Admin Articles shows **Failed to fetch** (browser) while logged in | Old behavior: slash redirects pointed at Docker-only host `http://api:8000/…`. **Redeploy the API image** built from current `backend/` (`redirect_slashes=False` plus both `/articles` variants). Until then you may see redirects to invalid `Location`. |
 
 ---
 
