@@ -18,6 +18,7 @@ def get_article_repo(
     return ArticleRepository(session)
 
 
+@router.get("", response_model=Page[ArticleListItem])
 @router.get("/", response_model=Page[ArticleListItem])
 @limiter.limit("120/minute")
 async def list_articles(
