@@ -19,6 +19,13 @@ function internalRewriteOrigin(): string {
 
 const nextConfig: NextConfig = {
   output: "standalone",
+  images: {
+    remotePatterns: [
+      { protocol: "https", hostname: "i.ytimg.com", pathname: "/**" },
+      { protocol: "https", hostname: "i9.ytimg.com", pathname: "/**" },
+      { protocol: "https", hostname: "yt3.ggpht.com", pathname: "/**" },
+    ],
+  },
   async rewrites() {
     const origin = internalRewriteOrigin();
     return [

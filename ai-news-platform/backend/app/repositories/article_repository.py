@@ -38,6 +38,8 @@ def _to_public(row: Article) -> ArticlePublic:
         category=row.category,
         published_at=row.published_at,
         reading_time_minutes=row.reading_time_minutes,
+        cover_image_url=row.cover_image_url,
+        external_url=row.external_url,
         paragraphs=_split_paragraphs(row.body),
     )
 
@@ -137,6 +139,8 @@ class ArticleRepository:
             published_at=data.published_at,
             reading_time_minutes=data.reading_time_minutes,
             body=_join_paragraphs(data.paragraphs),
+            cover_image_url=data.cover_image_url,
+            external_url=data.external_url,
         )
         self.session.add(row)
         try:
@@ -161,6 +165,10 @@ class ArticleRepository:
             row.reading_time_minutes = data.reading_time_minutes
         if data.paragraphs is not None:
             row.body = _join_paragraphs(data.paragraphs)
+        if data.cover_image_url is not None:
+            row.cover_image_url = data.cover_image_url
+        if data.external_url is not None:
+            row.external_url = data.external_url
         await self.session.flush()
         return _to_admin(row)
 

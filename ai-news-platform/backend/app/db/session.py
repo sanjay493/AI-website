@@ -38,5 +38,20 @@ async def init_db() -> None:
     # Import models so metadata is populated before create_all
     import app.db.models  # noqa: F401
 
+    from sqlalchemy import text
+
     async with engine.begin() as conn:
         await conn.run_sync(Base.metadata.create_all)
+        if "postgresql" in settings.database_url.lower():
+            await conn.execute(
+                text(
+                    "ALTER TABLE articles ADD COLUMN IF NOT EXISTS "
+                    "cover_image_url VARCHAR(2048)",
+                ),
+            )
+            await conn.execute(
+                text(
+                    "ALTER TABLE articles ADD COLUMN IF NOT EXISTS "
+                    "external_url VARCHAR(2048)",
+                ),
+            )
