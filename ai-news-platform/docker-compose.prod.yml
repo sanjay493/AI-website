@@ -14,6 +14,9 @@ services:
       SECRET_KEY: ${SECRET_KEY}
       ALLOWED_HOSTS: ${ALLOWED_HOSTS:-}
       FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-}
+      YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      NEWS_INGEST_CRON_SECRET: ${NEWS_INGEST_CRON_SECRET:-}
+      NEWS_INGEST_FEED_URLS: ${NEWS_INGEST_FEED_URLS:-}
 
   web:
     build:
@@ -24,6 +27,7 @@ services:
         INTERNAL_API_ORIGIN: ${INTERNAL_API_ORIGIN:-http://api:8000}
     environment:
       NODE_ENV: production
+      INTERNAL_API_ORIGIN: ${INTERNAL_API_ORIGIN:-http://api:8000}
       SERVER_API_URL: http://api:8000/api/v1
       NEXT_PUBLIC_API_URL: ${NEXT_PUBLIC_API_URL:-/api/v1}
       NEXT_PUBLIC_SITE_URL: ${NEXT_PUBLIC_SITE_URL}

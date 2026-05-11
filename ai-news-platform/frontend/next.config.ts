@@ -1,9 +1,19 @@
 import type { NextConfig } from "next";
 
-/** FastAPI in Docker (`http://api:8000`) or local dev. Baked at image build via INTERNAL_API_ORIGIN. */
+/** FastAPI origin for `rewrites()` — must reach the API from inside the Node process (Docker: `http://api:8000`, not localhost). */
 function internalRewriteOrigin(): string {
-  const o = process.env.INTERNAL_API_ORIGIN?.trim();
-  if (o) return o.replace(/\/$/, "");
+  const explicit = process.env.INTERNAL_API_ORIGIN?.trim();
+  if (explicit) return explicit.replace(/\/$/, "");
+
+  const serverApi = process.env.SERVER_API_URL?.trim();
+  if (serverApi) {
+    try {
+      return new URL(serverApi).origin;
+    } catch {
+      /* ignore invalid */
+    }
+  }
+
   return "http://127.0.0.1:8000";
 }
 

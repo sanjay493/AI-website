@@ -4,11 +4,14 @@ import { useEffect, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
 import { fetchAdminStatus } from "@/lib/auth-credentials";
+import { runNewsIngest } from "@/lib/admin-news-ingest";
 
 export default function AdminPage() {
   const { accessToken, user, loading } = useAuth();
   const [status, setStatus] = useState<string | null>(null);
   const [error, setError] = useState<string | null>(null);
+  const [ingestBusy, setIngestBusy] = useState(false);
+  const [ingestMsg, setIngestMsg] = useState<string | null>(null);
 
   useEffect(() => {
     let cancelled = false;
@@ -78,6 +81,77 @@ export default function AdminPage() {
         ) : (
           <p className="text-sm text-zinc-700 dark:text-zinc-200">{status}</p>
         )}
+      </div>
+
+      <div className="mt-8 rounded-2xl border border-zinc-200 bg-white p-6 shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
+        <h2 className="text-sm font-semibold text-zinc-900 dark:text-zinc-50">
+          External news agent
+        </h2>
+        <p className="mt-2 text-sm text-zinc-600 dark:text-zinc-400">
+          Pulls a weekly-style bundle: RSS/Atom sources (arXiv, blogs,{" "}
+          <span className="font-medium">Google News (AI)</span>, curated channels) plus
+          optional{" "}
+          <span className="font-medium">YouTube regional trending</span> in Science
+          &amp; Technology when{" "}
+          <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-800">
+            YOUTUBE_API_KEY
+          </code>{" "}
+          is set. Each run stores summaries + links as <strong>news</strong> posts
+          (not full transcripts). For hands-free weekly runs, set{" "}
+          <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-800">
+            NEWS_INGEST_CRON_SECRET
+          </code>{" "}
+          and call{" "}
+          <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-800">
+            POST /api/v1/admin/news-agent/ingest/scheduled
+          </code>{" "}
+          with header{" "}
+          <code className="rounded bg-zinc-100 px-1 text-xs dark:bg-zinc-800">
+            X-News-Ingest-Secret
+          </code>{" "}
+          from cron.
+        </p>
+        <button
+          type="button"
+          disabled={ingestBusy || !accessToken}
+          onClick={() => {
+            if (!accessToken) return;
+            setIngestMsg(null);
+            setIngestBusy(true);
+            void (async () => {
+              try {
+                const r = await runNewsIngest(accessToken);
+                const parts = [
+                  `Created ${r.created_slugs.length} article(s).`,
+                  r.skipped_duplicates
+                    ? `Skipped ${r.skipped_duplicates} duplicate(s).`
+                    : null,
+                  r.errors.length
+                    ? `Feed errors: ${r.errors.join("; ")}`
+                    : null,
+                  r.notes?.length
+                    ? `Note: ${r.notes.join(" ")}`
+                    : null,
+                ].filter(Boolean);
+                setIngestMsg(parts.join(" "));
+              } catch (e) {
+                setIngestMsg(
+                  e instanceof Error ? e.message : "Ingest failed",
+                );
+              } finally {
+                setIngestBusy(false);
+              }
+            })();
+          }}
+          className="mt-4 rounded-xl bg-zinc-900 px-4 py-2 text-sm font-semibold text-white hover:bg-zinc-800 disabled:opacity-50 dark:bg-zinc-100 dark:text-zinc-900 dark:hover:bg-white"
+        >
+          {ingestBusy ? "Fetching feeds…" : "Run ingest now"}
+        </button>
+        {ingestMsg ? (
+          <p className="mt-3 text-sm text-zinc-700 dark:text-zinc-300">
+            {ingestMsg}
+          </p>
+        ) : null}
       </div>
 
       <div className="mt-10 grid gap-4 sm:grid-cols-2">

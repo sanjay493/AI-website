@@ -38,6 +38,46 @@ class Settings(BaseSettings):
 
     jwt_algorithm: str = "HS256"
 
+    #: Comma- or newline-separated RSS/Atom URLs (YouTube channel:
+    #: https://www.youtube.com/feeds/videos.xml?channel_id=...).
+    #: YouTube *trending* (region chart) needs YOUTUBE_API_KEY — see `fetch_youtube_trending`.
+    news_ingest_feed_urls: str = (
+        "https://arxiv.org/rss/cs.AI,"
+        "https://blog.google/technology/ai/rss/,"
+        "https://news.google.com/rss/search?q=artificial+intelligence&hl=en-US&gl=US&ceid=US:en,"
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg"
+    )
+    news_ingest_user_agent: str = (
+        "AISignalNewsAgent/1.0 (+https://github.com/sanjay493/AI-Website)"
+    )
+
+    #: YouTube Data API v3 — enables **regional trending** (chart=mostPopular), not channel RSS.
+    youtube_api_key: str | None = None
+    youtube_trending_region: str = "US"
+    #: Max videos per ingest; set 0 in request to skip trending even if key is set.
+    youtube_trending_max_results: int = Field(default=20, ge=0, le=50)
+    #: e.g. "28" = Science & Technology; empty / unset = all categories in chart.
+    youtube_trending_video_category_id: str | None = Field(default="28")
+
+    #: Shared secret for POST /admin/news-agent/ingest/scheduled (weekly cron on VPS).
+    news_ingest_cron_secret: str | None = None
+
+    @field_validator("youtube_api_key", "news_ingest_cron_secret", mode="before")
+    @classmethod
+    def empty_optional_secret(cls, value: object) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return str(value).strip()
+
+    @field_validator("youtube_trending_video_category_id", mode="before")
+    @classmethod
+    def empty_category_id(cls, value: object) -> str | None:
+        if value is None:
+            return None
+        if isinstance(value, str) and value.strip() == "":
+            return None
     @field_validator("first_admin_email", mode="before")
     @classmethod
     def empty_admin_email(cls, value: object) -> str | None:

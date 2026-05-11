@@ -156,6 +156,10 @@ usermod -aG docker YOUR_USER
 
 ### 4. Give the VPS permission to pull the repo
 
+GitHub allows public repo pulls without authentication. When deploy keys are needed
+
+If your repo becomes private, then your server cannot do: git pull
+
 - **Private repo**: add a **[Deploy key](https://docs.github.com/en/authentication/connecting-to-github-with-ssh/managing-deploy-keys#deploy-keys)** (read-only) on GitHub Settings → Deploy keys → add the VPS’s **public** key, OR use HTTPS with a **PAT**.
 - **Public repo**: `git clone` / `git pull` over HTTPS is enough.
 
@@ -187,6 +191,22 @@ You can still deploy manually anytime: **Actions → Deploy VPS (Hostinger) → 
 cd /opt/AI-website/ai-news-platform   # same as VPS_DEPLOY_PATH
 docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.production ps
 ```
+
+### Weekly “news agent” ingest (optional)
+
+The stack can pull **RSS/Atom** sources (defaults include arXiv, Google AI blog, Google News AI topic, plus a curated YouTube channel feed) and optionally **YouTube regional trending** videos when **`YOUTUBE_API_KEY`** is set (YouTube Data API v3, `videos.list` with `chart=mostPopular`; default category **28** = Science & Technology). Items are stored as **`news`** posts (title, description snippet, link — not full video transcripts).
+
+- **Manual:** Admin → **Run ingest now**.
+- **Cron (no browser):** set **`NEWS_INGEST_CRON_SECRET`** in `.env.production`, then POST (same public URL you use for the API, often same host as the site with `/api/v1`):
+
+```bash
+curl -sS -X POST "https://yourdomain.com/api/v1/admin/news-agent/ingest/scheduled" \
+  -H "Content-Type: application/json" \
+  -H "X-News-Ingest-Secret: YOUR_SECRET_HERE" \
+  -d '{}'
+```
+
+Example **weekly** (Monday 06:00 UTC): `0 6 * * 1` in `crontab` on the VPS.
 
 ---
 
