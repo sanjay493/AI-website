@@ -58,7 +58,7 @@ describe("Blog page", () => {
       screen.getByRole("heading", { level: 1, name: /^blog$/i }),
     ).toBeInTheDocument();
 
-    const links = screen.getAllByRole("link", { name: /read more/i });
+    const links = screen.getAllByRole("link", { name: /read on site/i });
     expect(links[0]).toHaveAttribute("href", "/blog/a");
     expect(links[1]).toHaveAttribute("href", "/blog/b");
   });
