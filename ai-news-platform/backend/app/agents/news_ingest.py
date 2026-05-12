@@ -71,6 +71,8 @@ class FeedItem:
     summary: str
     published: date | None
     thumbnail_url: str | None = None
+    #: YouTube snippet tags (API); used only for AI trending filter — not shown in excerpt.
+    tag_list: tuple[str, ...] = ()
 
 
 def parse_feed_xml(xml_bytes: bytes, *, feed_url: str) -> list[FeedItem]:
@@ -287,6 +289,8 @@ _BUILTIN_YOUTUBE_AI_SUBSTRINGS: tuple[str, ...] = tuple(
         "machine learning",
         "deep learning",
         "neural network",
+        "neural net",
+        "neural",
         "large language model",
         "language model",
         "generative ai",
@@ -294,13 +298,32 @@ _BUILTIN_YOUTUBE_AI_SUBSTRINGS: tuple[str, ...] = tuple(
         "gen ai",
         "foundation model",
         "multimodal model",
+        "multimodal",
+        "multi-modal",
         "computer vision",
         "natural language",
-        "nlp",
-        "semi-supervised",
-        "unsupervised learning",
-        "reinforcement learning",
+        "speech recognition",
+        "voice assistant",
+        "text to speech",
+        "chatbot",
+        "chat bot",
+        "chatbots",
+        "reasoning model",
+        "token context",
+        "context window",
+        "fine-tuning",
+        "fine tuning",
+        "finetuning",
+        "prompt engineering",
+        "synthetic media",
+        "deepfake",
+        "deep fake",
         "diffusion model",
+        "transformer",
+        "embedding",
+        "vector search",
+        "retrieval augmented",
+        "nvidia",
         "openai",
         "chatgpt",
         "gpt-4",
@@ -312,15 +335,57 @@ _BUILTIN_YOUTUBE_AI_SUBSTRINGS: tuple[str, ...] = tuple(
         "deepmind",
         "mistral ai",
         "mistral",
+        "deepseek",
         "meta ai",
         "llama ",
         "llama2",
         "llama 2",
+        "llama3",
+        "llama 3",
         "copilot ai",
-        "gemini ",
+        "microsoft copilot",
+        "gemini",
+        "notebooklm",
+        "perplexity",
+        "groq",
+        "whisper",
+        "sora",
+        "veo",
+        "midjourney",
+        "runway",
+        "agents",
+        "agentic",
+        "unsupervised learning",
+        "reinforcement learning",
+        "semi-supervised",
         "pytorch",
         "tensorflow",
     )
+)
+
+
+# YouTube trending titles rarely say "machine learning"; they often use "AI", GPT, Gemini, etc.
+# Substring search for "ai" alone would false-match words like "available".
+_AI_TREND_TOKEN_OR_TAG_RE = re.compile(
+    r"(?iu)(?:"
+    r"\b(?:"
+    r"a\.i\.|"  # A.I.
+    r"ai|"
+    r"agi|"
+    r"chatgpt|"
+    r"openai|"
+    r"anthropic|"
+    r"deepseek|"
+    r"mistral|"
+    r"llms?|"
+    r"gpt|"
+    r"nlp|"
+    r"genai|"
+    r"copilot|"
+    r"gemini|"
+    r"notebooklm"
+    r")\b"
+    r"|(?:^|[\s>#(])#(?:ai|gpt|llms?|genai)(?:[-_/a-z0-9]{0,48})?(?=[\s)#>,]|$))",
 )
 
 
@@ -335,9 +400,15 @@ def _effective_ai_trend_needles(extra_keywords: str) -> tuple[str, ...]:
 
 
 def youtube_trend_matches_ai_signals(item: FeedItem, needles: Iterable[str]) -> bool:
-    """True if title or compact summary matches any needle (needles already lowercased)."""
-    blob = f"{item.title}\n{item.summary}".casefold()
-    return any(n and n in blob for n in needles)
+    """Match long-phrase substrings, YouTube tags, or bounded tokens (e.g. whole word \"ai\")."""
+    parts = [item.title, item.summary]
+    if item.tag_list:
+        parts.append(" ".join(item.tag_list))
+    text = "\n".join(parts)
+    cf = text.casefold()
+    if any(n and n in cf for n in needles):
+        return True
+    return bool(_AI_TREND_TOKEN_OR_TAG_RE.search(text))
 
 
 def youtube_items_from_api_payload(payload: dict) -> list[FeedItem]:
@@ -360,6 +431,14 @@ def youtube_items_from_api_payload(payload: dict) -> list[FeedItem]:
         pub = _parse_date_atom(pub_raw) if isinstance(pub_raw, str) else None
         link = f"https://www.youtube.com/watch?v={vid_id}"
         display_title = title or "YouTube video"
+        tags_raw = sn.get("tags")
+        tag_list: tuple[str, ...] = ()
+        if isinstance(tags_raw, list):
+            tag_list = tuple(
+                str(t).strip()
+                for t in tags_raw[:50]
+                if isinstance(t, str) and str(t).strip()
+            )
         out.append(
             FeedItem(
                 title=display_title[:500],
@@ -367,6 +446,7 @@ def youtube_items_from_api_payload(payload: dict) -> list[FeedItem]:
                 summary=short,
                 published=pub,
                 thumbnail_url=thumb,
+                tag_list=tag_list,
             ),
         )
     return out
@@ -493,8 +573,9 @@ async def run_news_ingest(
                 if dropped and not yt_items:
                     notes.append(
                         "YouTube trending: API returned videos but none matched "
-                        "AI keyword filters — raise max results or widen "
-                        "`YOUTUBE_TRENDING_AI_KEYWORDS`.",
+                        "AI filters — try raising YOUTUBE_TRENDING_MAX_RESULTS, "
+                        "clearing YOUTUBE_TRENDING_VIDEO_CATEGORY_ID for all categories, "
+                        "or widen YOUTUBE_TRENDING_AI_KEYWORDS.",
                     )
                 elif dropped:
                     notes.append(

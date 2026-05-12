@@ -59,6 +59,48 @@ def test_effective_ai_trend_needles_extend_custom() -> None:
     assert "agentic ai" in n
 
 
+def test_word_ai_boundary_avoids_false_positive_available() -> None:
+    needles = _effective_ai_trend_needles("")
+    assert not youtube_trend_matches_ai_signals(
+        FeedItem(
+            title="Upgrade available tonight",
+            link="http://example.com/a",
+            summary="Patches",
+            published=None,
+        ),
+        needles,
+    )
+    assert youtube_trend_matches_ai_signals(
+        FeedItem(
+            title="This AI update changes everything",
+            link="http://example.com/b",
+            summary="Details",
+            published=None,
+        ),
+        needles,
+    )
+
+
+def test_youtube_snippet_tags_participate_in_ai_match() -> None:
+    payload = {
+        "items": [
+            {
+                "id": "tagvid",
+                "snippet": {
+                    "title": "Weekly roundup",
+                    "description": "Short.",
+                    "tags": ["trailers", "gemini demonstration"],
+                    "publishedAt": "2026-05-01T12:00:00Z",
+                },
+            }
+        ],
+    }
+    needles = _effective_ai_trend_needles("")
+    item = youtube_items_from_api_payload(payload)[0]
+    assert item.tag_list
+    assert youtube_trend_matches_ai_signals(item, needles)
+
+
 def test_parse_rss_basic() -> None:
     xml = b"""<?xml version="1.0" encoding="UTF-8"?>
 <rss version="2.0">

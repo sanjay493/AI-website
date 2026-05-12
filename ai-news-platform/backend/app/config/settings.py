@@ -55,7 +55,7 @@ class Settings(BaseSettings):
     youtube_api_key: str | None = None
     youtube_trending_region: str = "US"
     #: Max videos per ingest; set 0 in request to skip trending even if key is set.
-    youtube_trending_max_results: int = Field(default=20, ge=0, le=50)
+    youtube_trending_max_results: int = Field(default=40, ge=0, le=50)
     #: e.g. "28" = Science & Technology; empty / unset = all categories in chart.
     youtube_trending_video_category_id: str | None = Field(default="28")
     #: If True (default), only trending videos whose title/snippet matches AI keywords stay.
