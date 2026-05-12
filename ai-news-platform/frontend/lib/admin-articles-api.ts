@@ -37,7 +37,12 @@ async function readError(res: Response): Promise<string> {
 
 export async function adminListArticles(
   token: string,
-  params?: { category?: string; limit?: number; offset?: number },
+  params?: {
+    category?: string;
+    limit?: number;
+    offset?: number;
+    q?: string;
+  },
 ): Promise<PageResp> {
   const path = `${getApiUrl().replace(/\/$/, "")}/admin/articles`;
   const search = new URLSearchParams({
@@ -45,6 +50,7 @@ export async function adminListArticles(
     offset: String(params?.offset ?? 0),
   });
   if (params?.category) search.set("category", params.category);
+  if (params?.q?.trim()) search.set("q", params.q.trim());
   const qs = search.toString();
   const url = qs ? `${path}?${qs}` : path;
   const res = await fetch(url, {

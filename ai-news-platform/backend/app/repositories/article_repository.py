@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 
-from sqlalchemy import func, select
+from sqlalchemy import func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -28,6 +28,32 @@ def _split_paragraphs(body: str) -> list[str]:
 
 def _join_paragraphs(lines: Sequence[str]) -> str:
     return "\n\n".join(p.strip() for p in lines if p.strip())
+
+
+def _like_escape(term: str) -> str:
+    """Escape `%`, `_`, and `\\` for SQL ILIKE patterns (PostgreSQL-compatible)."""
+    return (
+        term.replace("\\", "\\\\")
+        .replace("%", "\\%")
+        .replace("_", "\\_")
+    )
+
+
+def _admin_search_predicate(search: str | None):
+    if search is None:
+        return None
+    stripped = search.strip()
+    if not stripped:
+        return None
+    safe = _like_escape(stripped)
+    pattern = f"%{safe}%"
+    return or_(
+        Article.title.ilike(pattern, escape="\\"),
+        Article.excerpt.ilike(pattern, escape="\\"),
+        Article.slug.ilike(pattern, escape="\\"),
+        Article.body.ilike(pattern, escape="\\"),
+        Article.external_url.ilike(pattern, escape="\\"),
+    )
 
 
 def _to_public(row: Article) -> ArticlePublic:
@@ -101,12 +127,17 @@ class ArticleRepository:
         category: str | None,
         offset: int,
         limit: int,
+        search: str | None = None,
     ) -> Page[ArticleAdminOut]:
         base = select(Article)
         count_sq = select(func.count()).select_from(Article)
         if category is not None:
             base = base.where(Article.category == category)
             count_sq = count_sq.where(Article.category == category)
+        pred = _admin_search_predicate(search)
+        if pred is not None:
+            base = base.where(pred)
+            count_sq = count_sq.where(pred)
         total = int(await self.session.scalar(count_sq) or 0)
         pages = math.ceil(total / limit) if limit else 0
         stmt = (
