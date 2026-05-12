@@ -33,15 +33,18 @@ def get_article_repo(
 async def list_admin_articles(
     request: Request,
     category: ArticleCategory | None = None,
-    limit: int = Query(50, ge=1, le=100),
+    q: str | None = Query(None, max_length=200, description="Case-insensitive search in title, slug, excerpt, body, external URL"),
+    limit: int = Query(50, ge=1, le=250),
     offset: int = Query(0, ge=0),
     repo: ArticleRepository = Depends(get_article_repo),
 ) -> Page[ArticleAdminOut]:
     cat = category.value if category is not None else None
+    search_term = q.strip() if q else None
     return await repo.admin_list_page(
         category=cat,
         offset=offset,
         limit=limit,
+        search=search_term,
     )
 
 

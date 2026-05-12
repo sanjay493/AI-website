@@ -47,6 +47,7 @@ class FakeArticleRepository:
         category: str | None,
         offset: int,
         limit: int,
+        search: str | None = None,
     ) -> Page[Any]:
         meta = PageMeta(total=0, limit=limit, offset=offset, pages=0)
         return Page(items=[], meta=meta)
