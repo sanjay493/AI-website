@@ -58,6 +58,11 @@ class Settings(BaseSettings):
     youtube_trending_max_results: int = Field(default=20, ge=0, le=50)
     #: e.g. "28" = Science & Technology; empty / unset = all categories in chart.
     youtube_trending_video_category_id: str | None = Field(default="28")
+    #: If True (default), only trending videos whose title/snippet matches AI keywords stay.
+    youtube_trending_ai_only: bool = Field(default=True)
+    #: Extra comma-/newline-separated substrings matched case-insensitively against
+    #: title + short description (after built-in defaults). Empty = defaults only — see ingest.
+    youtube_trending_ai_keywords: str = Field(default="")
 
     #: Shared secret for POST /admin/news-agent/ingest/scheduled (weekly cron on VPS).
     news_ingest_cron_secret: str | None = None
@@ -78,6 +83,8 @@ class Settings(BaseSettings):
             return None
         if isinstance(value, str) and value.strip() == "":
             return None
+        return str(value).strip()
+
     @field_validator("first_admin_email", mode="before")
     @classmethod
     def empty_admin_email(cls, value: object) -> str | None:

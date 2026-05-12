@@ -194,7 +194,7 @@ docker compose -f docker-compose.yml -f docker-compose.prod.yml --env-file .env.
 
 ### Weekly “news agent” ingest (optional)
 
-The stack can pull **RSS/Atom** sources (defaults include arXiv, Google AI blog, Google News AI topic, plus a curated YouTube channel feed) and optionally **YouTube regional trending** videos when **`YOUTUBE_API_KEY`** is set (YouTube Data API v3, `videos.list` with `chart=mostPopular`; default category **28** = Science & Technology). Items are stored as **`news`** posts (title, description snippet, link — not full video transcripts).
+The stack can pull **RSS/Atom** sources (defaults include arXiv, Google AI blog, Google News AI topic, plus a curated YouTube channel feed) and optionally **YouTube regional trending** videos when **`YOUTUBE_API_KEY`** is set (YouTube Data API v3, `videos.list` with `chart=mostPopular`; default category **28** = Science & Technology). By default **only trending clips whose title or description matches AI-related phrases** are kept (built-in keywords plus optional `YOUTUBE_TRENDING_AI_KEYWORDS`; disable with **`YOUTUBE_TRENDING_AI_ONLY=false`**). Items are stored as **`news`** posts (title, description snippet, link — not full video transcripts).
 
 - **Manual:** Admin → **Run ingest now**.
 - **Cron (no browser):** set **`NEWS_INGEST_CRON_SECRET`** in `.env.production`, then POST (same public URL you use for the API, often same host as the site with `/api/v1`):

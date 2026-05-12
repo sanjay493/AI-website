@@ -6,6 +6,7 @@ import hashlib
 import html
 import logging
 import re
+from collections.abc import Iterable
 from dataclasses import dataclass
 from datetime import date, datetime, timezone
 from email.utils import parsedate_to_datetime
@@ -279,6 +280,66 @@ def _split_feed_urls(raw: str) -> list[str]:
     return parts
 
 
+_BUILTIN_YOUTUBE_AI_SUBSTRINGS: tuple[str, ...] = tuple(
+    needle.casefold()
+    for needle in (
+        "artificial intelligence",
+        "machine learning",
+        "deep learning",
+        "neural network",
+        "large language model",
+        "language model",
+        "generative ai",
+        "generative artificial",
+        "gen ai",
+        "foundation model",
+        "multimodal model",
+        "computer vision",
+        "natural language",
+        "nlp",
+        "semi-supervised",
+        "unsupervised learning",
+        "reinforcement learning",
+        "diffusion model",
+        "openai",
+        "chatgpt",
+        "gpt-4",
+        "gpt 4",
+        "gpt-3",
+        "gpt 3",
+        "anthropic",
+        "google deepmind",
+        "deepmind",
+        "mistral ai",
+        "mistral",
+        "meta ai",
+        "llama ",
+        "llama2",
+        "llama 2",
+        "copilot ai",
+        "gemini ",
+        "pytorch",
+        "tensorflow",
+    )
+)
+
+
+def _effective_ai_trend_needles(extra_keywords: str) -> tuple[str, ...]:
+    """Built-in AI-related substrings plus optional env extra list (case-folded)."""
+    custom = tuple(
+        p.strip().casefold()
+        for p in re.split(r"[\n,]+", extra_keywords.strip())
+        if p.strip()
+    )
+    return _BUILTIN_YOUTUBE_AI_SUBSTRINGS + custom
+
+
+def youtube_trend_matches_ai_signals(item: FeedItem, needles: Iterable[str]) -> bool:
+    """True if title or compact summary matches any needle (needles already lowercased)."""
+    blob = f"{item.title}\n{item.summary}".casefold()
+    return any(n and n in blob for n in needles)
+
+
 def youtube_items_from_api_payload(payload: dict) -> list[FeedItem]:
     """Map YouTube Data API `videos.list` JSON to FeedItem (test hook)."""
     out: list[FeedItem] = []
@@ -420,6 +481,27 @@ async def run_news_ingest(
             )
             if yt_err:
                 errors.append(f"YouTube trending API: {yt_err}")
+            elif settings.youtube_trending_ai_only:
+                needles = _effective_ai_trend_needles(settings.youtube_trending_ai_keywords)
+                before_n = len(yt_items)
+                yt_items = [
+                    it
+                    for it in yt_items
+                    if youtube_trend_matches_ai_signals(it, needles)
+                ]
+                dropped = before_n - len(yt_items)
+                if dropped and not yt_items:
+                    notes.append(
+                        "YouTube trending: API returned videos but none matched "
+                        "AI keyword filters — raise max results or widen "
+                        "`YOUTUBE_TRENDING_AI_KEYWORDS`.",
+                    )
+                elif dropped:
+                    notes.append(
+                        "YouTube trending: filtered "
+                        f"{dropped}/{before_n} non-AI-related video(s); "
+                        f"kept {len(yt_items)}.",
+                    )
             candidates.extend(yt_items)
 
         for feed_url in urls:
