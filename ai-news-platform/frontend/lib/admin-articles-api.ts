@@ -128,3 +128,21 @@ export async function adminDeleteArticle(
   );
   if (!res.ok) throw new Error(await readError(res));
 }
+
+export type AdminBulkDeleteResult = {
+  deleted_count: number;
+};
+
+export async function adminBulkDeleteArticles(
+  token: string,
+  slugs: string[],
+): Promise<AdminBulkDeleteResult> {
+  const url = `${getApiUrl().replace(/\/$/, "")}/admin/articles/bulk-delete`;
+  const res = await fetch(url, {
+    method: "POST",
+    headers: authHeaders(token),
+    body: JSON.stringify({ slugs }),
+  });
+  if (!res.ok) throw new Error(await readError(res));
+  return res.json() as Promise<AdminBulkDeleteResult>;
+}

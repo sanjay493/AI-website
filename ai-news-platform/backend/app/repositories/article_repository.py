@@ -10,7 +10,7 @@ from __future__ import annotations
 import math
 from collections.abc import Sequence
 
-from sqlalchemy import func, or_, select
+from sqlalchemy import delete, func, or_, select
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -202,6 +202,19 @@ class ArticleRepository:
             row.external_url = data.external_url
         await self.session.flush()
         return _to_admin(row)
+
+    async def bulk_delete_by_slugs(self, slugs: Sequence[str]) -> int:
+        if not slugs:
+            return 0
+        ordered_unique = list(dict.fromkeys(slugs))
+        result = await self.session.execute(
+            delete(Article)
+            .where(Article.slug.in_(ordered_unique))
+            .returning(Article.id),
+        )
+        n = len(result.scalars().all())
+        await self.session.flush()
+        return n
 
     async def delete(self, slug: str) -> bool:
         row = await self.session.scalar(select(Article).where(Article.slug == slug))

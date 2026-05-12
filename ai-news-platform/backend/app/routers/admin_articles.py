@@ -5,6 +5,8 @@ from app.db.session import get_async_session
 from app.deps.auth_deps import require_admin
 from app.models.article_requests import (
     ArticleAdminOut,
+    ArticleBulkDeleteRequest,
+    ArticleBulkDeleteResponse,
     ArticleCategory,
     ArticleCreate,
     ArticleUpdate,
@@ -63,6 +65,21 @@ async def create_article(
             status.HTTP_409_CONFLICT,
             detail=str(exc),
         ) from exc
+
+
+@router.post(
+    "/bulk-delete",
+    response_model=ArticleBulkDeleteResponse,
+    status_code=status.HTTP_200_OK,
+)
+@limiter.limit("60/minute")
+async def bulk_delete_articles(
+    request: Request,
+    body: ArticleBulkDeleteRequest,
+    repo: ArticleRepository = Depends(get_article_repo),
+) -> ArticleBulkDeleteResponse:
+    n = await repo.bulk_delete_by_slugs(body.slugs)
+    return ArticleBulkDeleteResponse(deleted_count=n)
 
 
 @router.get("/{slug}", response_model=ArticleAdminOut)
