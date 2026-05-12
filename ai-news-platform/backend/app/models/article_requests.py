@@ -10,6 +10,35 @@ from pydantic import BaseModel, ConfigDict, Field, field_validator, model_valida
 _SLUG_RX = re.compile(r"^[a-z0-9]+(?:-[a-z0-9]+)*$")
 
 
+class ArticleBulkDeleteRequest(BaseModel):
+    model_config = ConfigDict(str_strip_whitespace=True)
+
+    slugs: list[str] = Field(min_length=1, max_length=250)
+
+    @field_validator("slugs", mode="after")
+    @classmethod
+    def normalize_bulk_slugs(cls, v: list[str]) -> list[str]:
+        out: list[str] = []
+        seen: set[str] = set()
+        for raw in v:
+            s = str(raw).strip()
+            if not s:
+                raise ValueError("Slug values must not be empty")
+            if len(s) > 220:
+                raise ValueError("Each slug must be at most 220 characters")
+            if s in seen:
+                continue
+            seen.add(s)
+            out.append(s)
+        if not out:
+            raise ValueError("Provide at least one slug")
+        return out
+
+
+class ArticleBulkDeleteResponse(BaseModel):
+    deleted_count: int = Field(ge=0)
+
+
 class ArticleCategory(str, Enum):
     news = "news"
     articles = "articles"

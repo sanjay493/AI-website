@@ -3,7 +3,7 @@
 from __future__ import annotations
 
 from datetime import date
-from typing import Any
+from typing import Any, Sequence
 
 from app.models.article import ArticlePublic
 from app.repositories.article_repository import ArticleRepository
@@ -63,6 +63,9 @@ class FakeArticleRepository:
 
     async def delete(self, _slug: str) -> bool:
         return False
+
+    async def bulk_delete_by_slugs(self, slugs: Sequence[str]) -> int:
+        return len(slugs)
 
 
 def fake_public_repo() -> ArticleRepository:

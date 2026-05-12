@@ -4,6 +4,7 @@ import { useEffect, useRef, useState } from "react";
 import Link from "next/link";
 import { useAuth } from "@/components/providers/auth-provider";
 import {
+  adminBulkDeleteArticles,
   adminDeleteArticle,
   adminListArticles,
   type AdminArticle,
@@ -38,6 +39,9 @@ export default function AdminArticlesPage() {
   });
 
   const kwInputRef = useRef<HTMLInputElement>(null);
+  const selectAllFilteredRef = useRef<HTMLInputElement>(null);
+  const [selected, setSelected] = useState<Set<string>>(() => new Set());
+  const [bulkBusy, setBulkBusy] = useState(false);
 
   async function refreshList(
     token: string,
@@ -50,6 +54,28 @@ export default function AdminArticlesPage() {
     });
     setItems(page.items);
   }
+
+  useEffect(() => {
+    const allowed = new Set(items.map((a) => a.slug));
+    setSelected((prev) => {
+      let dropped = false;
+      const next = new Set<string>();
+      for (const s of prev) {
+        if (allowed.has(s)) next.add(s);
+        else dropped = true;
+      }
+      if (!dropped && next.size === prev.size) return prev;
+      return next;
+    });
+  }, [items]);
+
+  useEffect(() => {
+    const el = selectAllFilteredRef.current;
+    if (!el) return;
+    const n = items.length;
+    const selectedHere = items.filter((a) => selected.has(a.slug)).length;
+    el.indeterminate = selectedHere > 0 && selectedHere < n;
+  }, [items, selected]);
 
   useEffect(() => {
     if (loading || !accessToken || user?.role !== "admin") return;
@@ -106,7 +132,46 @@ export default function AdminArticlesPage() {
   const filtersActive =
     Boolean(filters.category.trim()) || Boolean(filters.q.trim());
 
+  const selectedInView = items.filter((a) => selected.has(a.slug)).length;
+
+  function toggleSlug(slug: string) {
+    if (bulkBusy) return;
+    setSelected((prev) => {
+      const next = new Set(prev);
+      if (next.has(slug)) next.delete(slug);
+      else next.add(slug);
+      return next;
+    });
+  }
+
+  async function onBulkDelete() {
+    if (!accessToken || selectedInView === 0) return;
+    const targets = items
+      .filter((a) => selected.has(a.slug))
+      .map((a) => a.slug);
+    if (
+      !window.confirm(
+        `Permanently delete ${targets.length} article(s)? This cannot be undone.`,
+      )
+    )
+      return;
+    setMsg(null);
+    setErr(null);
+    setBulkBusy(true);
+    try {
+      const result = await adminBulkDeleteArticles(accessToken, targets);
+      setSelected(new Set());
+      setMsg(`Deleted ${result.deleted_count} article(s).`);
+      await refreshList(accessToken, filters);
+    } catch (e) {
+      setErr(e instanceof Error ? e.message : "Bulk delete failed");
+    } finally {
+      setBulkBusy(false);
+    }
+  }
+
   async function onDelete(slug: string) {
+    if (bulkBusy) return;
     if (!window.confirm(`Delete “${slug}”? This cannot be undone.`)) return;
     if (!accessToken) return;
     setMsg(null);
@@ -250,10 +315,54 @@ export default function AdminArticlesPage() {
         </div>
       </div>
 
-      <div className="mt-8 overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40">
+      {items.length > 0 ? (
+        <div className="mt-6 flex flex-wrap items-center justify-between gap-3 rounded-xl border border-zinc-200 bg-white px-4 py-3 text-sm shadow-sm dark:border-zinc-800 dark:bg-zinc-900/50">
+          <p className="text-zinc-600 dark:text-zinc-400">
+            <span className="font-semibold text-zinc-900 dark:text-zinc-100">
+              {selectedInView}
+            </span>{" "}
+            of {items.length} in this filtered list selected
+          </p>
+          <button
+            type="button"
+            disabled={selectedInView === 0 || bulkBusy}
+            className="rounded-lg border border-red-200 bg-red-50 px-3 py-1.5 text-sm font-semibold text-red-800 hover:bg-red-100 disabled:cursor-not-allowed disabled:opacity-50 dark:border-red-900 dark:bg-red-950/60 dark:text-red-300 dark:hover:bg-red-950"
+            onClick={() => void onBulkDelete()}
+          >
+            Delete selected
+          </button>
+        </div>
+      ) : null}
+
+      <div
+        className={`mt-8 overflow-x-auto rounded-2xl border border-zinc-200 bg-white shadow-sm dark:border-zinc-800 dark:bg-zinc-900/40 ${bulkBusy ? "pointer-events-none opacity-60" : ""}`}
+      >
         <table className="min-w-full text-left text-sm">
           <thead className="border-b border-zinc-200 bg-zinc-50 text-xs font-semibold uppercase tracking-wide text-zinc-500 dark:border-zinc-800 dark:bg-zinc-900">
             <tr>
+              <th
+                scope="col"
+                className="w-10 px-2 py-3 text-center align-middle"
+              >
+                <input
+                  ref={selectAllFilteredRef}
+                  type="checkbox"
+                  className="h-4 w-4 rounded border-zinc-400 text-violet-600 focus:ring-violet-500"
+                  checked={
+                    items.length > 0 && selectedInView === items.length
+                  }
+                  onChange={(e) => {
+                    if (!items.length) return;
+                    if (e.target.checked) {
+                      setSelected(new Set(items.map((i) => i.slug)));
+                    } else {
+                      setSelected(new Set());
+                    }
+                  }}
+                  disabled={items.length === 0 || bulkBusy}
+                  aria-label="Select all filtered articles"
+                />
+              </th>
               <th className="px-4 py-3">Title</th>
               <th className="px-4 py-3">Slug</th>
               <th className="px-4 py-3">Category</th>
@@ -263,7 +372,17 @@ export default function AdminArticlesPage() {
           </thead>
           <tbody className="divide-y divide-zinc-100 dark:divide-zinc-800">
             {items.map((a) => (
-              <tr key={a.id}>
+              <tr key={a.id} className="align-middle">
+                <td className="px-2 py-3 text-center">
+                  <input
+                    type="checkbox"
+                    className="h-4 w-4 rounded border-zinc-400 text-violet-600 focus:ring-violet-500"
+                    checked={selected.has(a.slug)}
+                    onChange={() => toggleSlug(a.slug)}
+                    disabled={bulkBusy}
+                    aria-label={`Select: ${a.title.length > 72 ? `${a.title.slice(0, 72)}…` : a.title}`}
+                  />
+                </td>
                 <td className="px-4 py-3 font-medium text-zinc-900 dark:text-zinc-100">
                   {a.title}
                 </td>
@@ -288,8 +407,9 @@ export default function AdminArticlesPage() {
                     </Link>
                     <button
                       type="button"
+                      disabled={bulkBusy}
                       onClick={() => void onDelete(a.slug)}
-                      className="text-red-600 hover:underline dark:text-red-400"
+                      className="text-red-600 hover:underline enabled:cursor-pointer disabled:cursor-not-allowed disabled:opacity-40 dark:text-red-400"
                     >
                       Delete
                     </button>
