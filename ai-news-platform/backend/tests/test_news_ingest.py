@@ -1,6 +1,13 @@
 from __future__ import annotations
 
-from app.agents.news_ingest import _to_article_create, parse_feed_xml, youtube_items_from_api_payload
+from app.agents.news_ingest import (
+    FeedItem,
+    _effective_ai_trend_needles,
+    _to_article_create,
+    parse_feed_xml,
+    youtube_items_from_api_payload,
+    youtube_trend_matches_ai_signals,
+)
 
 
 def test_youtube_api_payload_to_feed_items() -> None:
@@ -26,6 +33,30 @@ def test_youtube_api_payload_to_feed_items() -> None:
     assert art.slug.startswith("feed-")
     assert art.external_url == "https://www.youtube.com/watch?v=abc123"
     assert art.cover_image_url
+
+
+def test_youtube_trend_ai_filter_skips_unrelated() -> None:
+    needles = _effective_ai_trend_needles("")
+    soccer = FeedItem(
+        title="Soccer highlights weekend",
+        link="http://example.com/x",
+        summary="Goals",
+        published=None,
+    )
+    ai_item = FeedItem(
+        title="Weekly ChatGPT updates",
+        link="http://example.com/y",
+        summary="Minor patch notes",
+        published=None,
+    )
+    assert not youtube_trend_matches_ai_signals(soccer, needles)
+    assert youtube_trend_matches_ai_signals(ai_item, needles)
+
+
+def test_effective_ai_trend_needles_extend_custom() -> None:
+    n = _effective_ai_trend_needles(" robotics , agentic ai ")
+    assert "robotics" in n
+    assert "agentic ai" in n
 
 
 def test_parse_rss_basic() -> None:
