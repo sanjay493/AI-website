@@ -1,4 +1,5 @@
 import type { Metadata } from "next";
+import Script from "next/script";
 import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import { SiteFooter } from "@/components/site-footer";
@@ -12,6 +13,8 @@ import {
   SITE_OG_TITLE,
 } from "@/lib/site-config";
 import "./globals.css";
+
+const GA_MEASUREMENT_ID = "G-PCRVMGTMQD";
 
 export const metadata: Metadata = {
   metadataBase: new URL(getSiteUrl()),
@@ -62,6 +65,18 @@ export default function RootLayout({
       className={`${GeistSans.variable} ${GeistMono.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans">
+        <Script
+          src={`https://www.googletagmanager.com/gtag/js?id=${GA_MEASUREMENT_ID}`}
+          strategy="afterInteractive"
+        />
+        <Script id="google-analytics" strategy="afterInteractive">
+          {`
+            window.dataLayer = window.dataLayer || [];
+            function gtag(){dataLayer.push(arguments);}
+            gtag('js', new Date());
+            gtag('config', '${GA_MEASUREMENT_ID}');
+          `}
+        </Script>
         <AuthProvider>
           <SiteHeader />
           <div className="flex-1">{children}</div>
