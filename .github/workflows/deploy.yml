@@ -1,0 +1,21 @@
+name: Deploy Local
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+
+    steps:
+      - name: Pull latest code
+        run: |
+          cd /home/sanjay/AI-website
+          git pull origin main
+
+      - name: Rebuild containers
+        run: |
+          cd /home/sanjay/AI-website/ai-news-platform
+          docker compose up -d --build
