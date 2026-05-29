@@ -9,6 +9,7 @@ from starlette.middleware.trustedhost import TrustedHostMiddleware
 
 from app.config.settings import get_settings
 from app.db.session import AsyncSessionLocal, engine, init_db
+from app.db.user_seed import seed_admin_user
 from app.middleware.security_headers import SecurityHeadersMiddleware
 from app.rate_limit import limiter
 from app.repositories.article_repository import seed_articles
@@ -20,6 +21,7 @@ async def app_lifespan(_app: FastAPI):
     await init_db()
     async with AsyncSessionLocal() as session:
         try:
+            await seed_admin_user(session)
             await seed_articles(session)
             await session.commit()
         except Exception:
