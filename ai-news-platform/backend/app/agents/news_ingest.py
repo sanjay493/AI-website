@@ -532,13 +532,13 @@ async def run_news_ingest(
     )
     want_youtube = (
         include_youtube_trending
-        and bool(settings.youtube_api_key)
+        and bool(settings.effective_youtube_api_key)
         and yt_cap > 0
     )
-    if include_youtube_trending and not settings.youtube_api_key:
+    if include_youtube_trending and not settings.effective_youtube_api_key:
         notes.append(
-            "YouTube trending skipped: set YOUTUBE_API_KEY for chart=mostPopular "
-            "(channel uploads still work via RSS without a key).",
+            "YouTube trending skipped: set a server-side API key (YOUTUBE_API_KEY_SERVER) "
+            "or YOUTUBE_API_KEY for chart=mostPopular (channel uploads still work via RSS).",
         )
 
     timeout = httpx.Timeout(25.0)
@@ -554,7 +554,7 @@ async def run_news_ingest(
         if want_youtube:
             yt_items, yt_err = await _fetch_youtube_trending(
                 client,
-                api_key=settings.youtube_api_key or "",
+                api_key=settings.effective_youtube_api_key or "",
                 region_code=settings.youtube_trending_region,
                 video_category_id=settings.youtube_trending_video_category_id,
                 max_results=yt_cap,

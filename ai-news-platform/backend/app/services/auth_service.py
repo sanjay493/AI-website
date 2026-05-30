@@ -1,8 +1,12 @@
 from __future__ import annotations
 
+import asyncio
 import logging
+import smtplib
+import ssl
 import uuid
 from datetime import datetime, timedelta, timezone
+from email.message import EmailMessage
 
 from sqlalchemy import delete, select, update
 from sqlalchemy.exc import IntegrityError
@@ -136,12 +140,85 @@ class AuthService:
             f"{self.settings.frontend_base_url.rstrip('/')}"
             f"/auth/reset-password?token={raw}"
         )
-        if self.settings.debug:
+        if self.settings.smtp_configured:
+            logger.info("Attempting password reset email for %s", normalized)
+            try:
+                await asyncio.to_thread(
+                    self._send_password_reset_email,
+                    normalized,
+                    reset_url,
+                )
+                logger.info("Password reset email request completed for %s", normalized)
+            except Exception as exc:
+                logger.error(
+                    "Failed to send password reset email to %s: %s",
+                    normalized,
+                    exc,
+                    exc_info=True,
+                )
+        elif self.settings.debug:
             logger.warning(
                 "Password reset URL for %s (development — add SMTP before prod): %s",
                 normalized,
                 reset_url,
             )
+
+    def _send_password_reset_email(self, recipient: str, reset_url: str) -> None:
+        message = EmailMessage()
+        message["Subject"] = "AgentWeekly password reset"
+        message["From"] = self.settings.smtp_from_email or "no-reply@example.com"
+        message["To"] = recipient
+        message.set_content(
+            f"Hello,\n\n" \
+            f"A password reset request was made for your AgentWeekly account. " \
+            f"If you did not request this, simply ignore this message.\n\n" \
+            f"Reset your password by visiting the link below:\n\n" \
+            f"{reset_url}\n\n" \
+            f"If you have trouble, copy and paste the full URL into your browser.\n\n" \
+            f"Thanks,\nAgentWeekly team\n"
+        )
+        message.add_alternative(
+            f"<html><body><p>Hello,</p>"
+            f"<p>A password reset request was made for your AgentWeekly account. "
+            f"If you did not request this, simply ignore this message.</p>"
+            f"<p><a href=\"{reset_url}\">Reset your password</a></p>"
+            f"<p>If the link does not work, paste this URL into your browser:</p>"
+            f"<p>{reset_url}</p>"
+            f"<p>Thanks,<br/>AgentWeekly team</p>"
+            f"</body></html>",
+            subtype="html",
+        )
+
+        context = ssl.create_default_context()
+        if self.settings.smtp_use_tls:
+            with smtplib.SMTP(
+                self.settings.smtp_host,
+                self.settings.smtp_port,
+                timeout=20,
+            ) as server:
+                server.ehlo()
+                server.starttls(context=context)
+                server.ehlo()
+                server.login(self.settings.smtp_username, self.settings.smtp_password)
+                server.send_message(message)
+        elif self.settings.smtp_port == 465:
+            with smtplib.SMTP_SSL(
+                self.settings.smtp_host,
+                self.settings.smtp_port,
+                context=context,
+                timeout=20,
+            ) as server:
+                server.login(self.settings.smtp_username, self.settings.smtp_password)
+                server.send_message(message)
+        else:
+            with smtplib.SMTP(
+                self.settings.smtp_host,
+                self.settings.smtp_port,
+                timeout=20,
+            ) as server:
+                server.login(self.settings.smtp_username, self.settings.smtp_password)
+                server.send_message(message)
+        logger.info("Password reset email sent to %s", recipient)
 
     async def reset_password(self, *, token: str, new_password: str) -> None:
         token_hash = hash_opaque(token)
