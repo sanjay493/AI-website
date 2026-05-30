@@ -916,15 +916,15 @@ async def run_news_ingest(
         if youtube_trending_max is not None
         else settings.youtube_trending_max_results
     )
-    has_api_key = bool(settings.youtube_api_key)
+    has_api_key = bool(settings.effective_youtube_api_key)
     want_trending = include_youtube_trending and has_api_key and yt_cap > 0
     want_search = include_youtube_ai_search and has_api_key
     want_shorts = include_youtube_shorts and has_api_key
 
     if (include_youtube_trending or include_youtube_ai_search or include_youtube_shorts) and not has_api_key:
         notes.append(
-            "YouTube API features skipped: set YOUTUBE_API_KEY to enable "
-            "chart=mostPopular, AI search, and Shorts. "
+            "YouTube API features skipped: set a server-side key (YOUTUBE_API_KEY_SERVER) "
+            "or YOUTUBE_API_KEY to enable chart=mostPopular, AI search, and Shorts. "
             "Channel uploads still work via RSS without a key."
         )
 
@@ -945,7 +945,7 @@ async def run_news_ingest(
         if want_trending:
             yt_items, yt_err = await _fetch_youtube_trending(
                 client,
-                api_key=settings.youtube_api_key or "",
+                api_key=settings.effective_youtube_api_key or "",
                 region_code=settings.youtube_trending_region,
                 video_category_id=settings.youtube_trending_video_category_id,
                 max_results=yt_cap,
@@ -975,7 +975,7 @@ async def run_news_ingest(
         if want_search:
             search_items, search_errs = await _fetch_youtube_ai_search(
                 client,
-                api_key=settings.youtube_api_key or "",
+                api_key=settings.effective_youtube_api_key or "",
                 queries=_YT_AI_SEARCH_QUERIES,
                 max_per_query=youtube_search_max_per_query,
                 region_code=getattr(settings, "youtube_trending_region", "US"),
@@ -991,7 +991,7 @@ async def run_news_ingest(
         if want_shorts:
             shorts_items, shorts_errs = await _fetch_youtube_ai_shorts(
                 client,
-                api_key=settings.youtube_api_key or "",
+                api_key=settings.effective_youtube_api_key or "",
                 queries=_YT_AI_SEARCH_QUERIES,
                 max_per_query=youtube_shorts_max_per_query,
                 region_code=getattr(settings, "youtube_trending_region", "US"),

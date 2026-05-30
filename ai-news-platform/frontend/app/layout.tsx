@@ -4,6 +4,7 @@ import { GeistMono } from "geist/font/mono";
 import { GeistSans } from "geist/font/sans";
 import { SiteFooter } from "@/components/site-footer";
 import { SiteHeader } from "@/components/site-header";
+import { YouTubeTrendingNav } from "@/components/youtube-trending-nav";
 import { AuthProvider } from "@/components/providers/auth-provider";
 import {
   absoluteUrl,
@@ -79,6 +80,7 @@ export default function RootLayout({
         </Script>
         <AuthProvider>
           <SiteHeader />
+          <YouTubeTrendingNav />
           <div className="flex-1">{children}</div>
           <SiteFooter />
         </AuthProvider>

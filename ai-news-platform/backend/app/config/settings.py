@@ -52,7 +52,10 @@ class Settings(BaseSettings):
     )
 
     #: YouTube Data API v3 — enables **regional trending** (chart=mostPopular), not channel RSS.
+    # Public/browser key (may be HTTP-referrer restricted). Prefer server key below.
     youtube_api_key: str | None = None
+    #: Server-side YouTube API key (restrict by server IP or VPC). Preferred for backend requests.
+    youtube_api_key_server: str | None = None
     youtube_trending_region: str = "US"
     #: Max videos per ingest; set 0 in request to skip trending even if key is set.
     youtube_trending_max_results: int = Field(default=40, ge=0, le=50)
@@ -67,7 +70,22 @@ class Settings(BaseSettings):
     #: Shared secret for POST /admin/news-agent/ingest/scheduled (weekly cron on VPS).
     news_ingest_cron_secret: str | None = None
 
-    @field_validator("youtube_api_key", "news_ingest_cron_secret", mode="before")
+    #: SMTP settings for password reset emails.
+    smtp_host: str | None = None
+    smtp_port: int | None = None
+    smtp_username: str | None = None
+    smtp_password: str | None = None
+    smtp_use_tls: bool = True
+    smtp_from_email: str | None = None
+
+    @field_validator(
+        "youtube_api_key",
+        "youtube_api_key_server",
+        "smtp_username",
+        "smtp_password",
+        "news_ingest_cron_secret",
+        mode="before",
+    )
     @classmethod
     def empty_optional_secret(cls, value: object) -> str | None:
         if value is None:
@@ -75,6 +93,21 @@ class Settings(BaseSettings):
         if isinstance(value, str) and value.strip() == "":
             return None
         return str(value).strip()
+
+    @property
+    def effective_youtube_api_key(self) -> str | None:
+        """Return the server API key if set, else fall back to the (possibly browser) key."""
+        return self.youtube_api_key_server or self.youtube_api_key
+
+    @property
+    def smtp_configured(self) -> bool:
+        return bool(
+            self.smtp_host
+            and self.smtp_port
+            and self.smtp_username
+            and self.smtp_password
+            and self.smtp_from_email
+        )
 
     @field_validator("youtube_trending_video_category_id", mode="before")
     @classmethod
