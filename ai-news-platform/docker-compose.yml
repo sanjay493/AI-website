@@ -52,8 +52,15 @@ services:
       SECRET_KEY: ${SECRET_KEY:-dev-secret-change-in-production}
       FRONTEND_BASE_URL: http://localhost:${WEB_HOST_PORT:-3000}
       YOUTUBE_API_KEY: ${YOUTUBE_API_KEY:-}
+      YOUTUBE_API_KEY_SERVER: ${YOUTUBE_API_KEY_SERVER:-}
       NEWS_INGEST_CRON_SECRET: ${NEWS_INGEST_CRON_SECRET:-}
       NEWS_INGEST_FEED_URLS: ${NEWS_INGEST_FEED_URLS:-}
+      SMTP_HOST: ${SMTP_HOST:-}
+      SMTP_PORT: ${SMTP_PORT:-}
+      SMTP_USERNAME: ${SMTP_USERNAME:-}
+      SMTP_PASSWORD: ${SMTP_PASSWORD:-}
+      SMTP_USE_TLS: ${SMTP_USE_TLS:-}
+      SMTP_FROM_EMAIL: ${SMTP_FROM_EMAIL:-}
       # Bash-style default: '-' after ':' (see https://docs.docker.com/compose/how-tos/environment-variables/variable-interpolation/)
       FIRST_ADMIN_EMAIL: ${FIRST_ADMIN_EMAIL:-sanjayism@gmail.com}
     ports:

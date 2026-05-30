@@ -24,6 +24,12 @@ export function SiteHeader() {
         <nav className="flex flex-wrap items-center justify-end gap-x-4 gap-y-2 text-sm font-medium text-zinc-600 dark:text-zinc-400">
           <AuthNav />
           <Link
+            href="/youtube-trending"
+            className="hover:text-violet-600 dark:hover:text-violet-400"
+          >
+            🎥 Trending
+          </Link>
+          <Link
             href="/blog"
             className="hover:text-violet-600 dark:hover:text-violet-400"
           >
