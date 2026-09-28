@@ -52,15 +52,16 @@ jobs:
 
       - name: Reload nginx
         run: |
-          sudo cp deploy/nginx/oracle-ip.conf /etc/nginx/sites-available/ai-news
+          sudo cp deploy/nginx/oracle.conf /etc/nginx/sites-available/ai-news
           sudo nginx -t && sudo systemctl reload nginx
 
       - name: Smoke test
         run: |
+          R="--resolve agentweekly.in:443:127.0.0.1"
           for i in $(seq 1 30); do
-            curl -fsS -o /dev/null http://127.0.0.1/ && curl -fsS -o /dev/null http://127.0.0.1/api/v1/articles && break
+            curl -fsS $R -o /dev/null https://agentweekly.in/ && curl -fsS $R -o /dev/null https://agentweekly.in/api/v1/articles && break
             sleep 5
           done
           $COMPOSE ps
-          curl -fsS -o /dev/null -w "home: %{http_code}\n" http://127.0.0.1/
-          curl -fsS -o /dev/null -w "api: %{http_code}\n" http://127.0.0.1/api/v1/articles
+          curl -fsS $R -o /dev/null -w "home: %{http_code}\n" https://agentweekly.in/
+          curl -fsS $R -o /dev/null -w "api: %{http_code}\n" https://agentweekly.in/api/v1/articles
