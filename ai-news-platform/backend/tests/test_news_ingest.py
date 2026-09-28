@@ -150,3 +150,25 @@ def test_to_article_create_rejects_bad_link() -> None:
         feed_url="x",
     )[0]
     assert _to_article_create(item) is None
+
+
+def _item(title: str) -> FeedItem:
+    return FeedItem(title=title, link="http://example.com/v", summary="", published=None)
+
+
+def test_youtube_trend_ai_filter_matches_newer_ai_names() -> None:
+    needles = _effective_ai_trend_needles("")
+    for title in (
+        "I tried Claude Code for a week",
+        "Grok 5 hands-on",
+        "Sam Altman interview",
+        "Riding a Waymo robotaxi",
+        "Stable Diffusion tips",
+    ):
+        assert youtube_trend_matches_ai_signals(_item(title), needles), title
+
+
+def test_youtube_trend_ai_filter_ignores_ambiguous_names() -> None:
+    needles = _effective_ai_trend_needles("")
+    for title in ("Jean-Claude Van Damme's best splits", "Kimi Raikkonen onboard lap"):
+        assert not youtube_trend_matches_ai_signals(_item(title), needles), title
