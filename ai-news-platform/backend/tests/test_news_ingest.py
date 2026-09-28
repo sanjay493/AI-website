@@ -178,3 +178,28 @@ def test_youtube_trend_ai_filter_ignores_ambiguous_names() -> None:
 def test_split_region_codes() -> None:
     assert split_region_codes("us, in,GB,us") == ["US", "IN", "GB"]
     assert split_region_codes("") == ["US"]
+
+
+def test_parse_youtube_channel_atom_reads_media_group() -> None:
+    xml = b"""<?xml version="1.0" encoding="UTF-8"?>
+<feed xmlns:yt="http://www.youtube.com/xml/schemas/2015" xmlns:media="http://search.yahoo.com/mrss/" xmlns="http://www.w3.org/2005/Atom">
+ <entry>
+  <title>New model deep dive</title>
+  <link rel="alternate" href="https://www.youtube.com/watch?v=R9momwXV9w4"/>
+  <published>2026-09-24T22:51:54+00:00</published>
+  <media:group>
+   <media:title>New model deep dive</media:title>
+   <media:thumbnail url="https://i3.ytimg.com/vi/R9momwXV9w4/hqdefault.jpg" width="480" height="360"/>
+   <media:description>What the new model changes for builders.
+
+Subscribe for more</media:description>
+  </media:group>
+ </entry>
+</feed>"""
+    (item,) = parse_feed_xml(xml, feed_url="https://www.youtube.com/feeds/videos.xml?channel_id=x")
+    assert item.thumbnail_url == "https://i.ytimg.com/vi/R9momwXV9w4/hqdefault.jpg"
+    assert item.summary == "What the new model changes for builders."
+    article = _to_article_create(item)
+    assert article is not None
+    assert article.cover_image_url == item.thumbnail_url
+    assert article.excerpt == "What the new model changes for builders."

@@ -21,6 +21,7 @@ from app.repositories.article_repository import ArticleRepository
 log = logging.getLogger(__name__)
 
 _ATOM = "{http://www.w3.org/2005/Atom}"
+_MEDIA = "{http://search.yahoo.com/mrss/}"
 _TAG = re.compile(r"<[^>]+>")
 
 
@@ -124,6 +125,16 @@ def _parse_atom(feed_el: ET.Element) -> list[FeedItem]:
                 pub_raw = cand.text
                 break
         pub = _parse_date_atom(pub_raw)
+        thumbnail_url = None
+        # YouTube channel feeds carry thumbnail + description in <media:group>.
+        group = entry.find(f"{_MEDIA}group")
+        if group is not None:
+            desc_el = group.find(f"{_MEDIA}description")
+            if not summary and desc_el is not None and desc_el.text:
+                summary = _compact_youtube_description(desc_el.text)
+            thumb_el = group.find(f"{_MEDIA}thumbnail")
+            if thumb_el is not None:
+                thumbnail_url = _canonical_youtube_thumbnail(link, thumb_el.get("url"))
         if title or link:
             out.append(
                 FeedItem(
@@ -131,9 +142,21 @@ def _parse_atom(feed_el: ET.Element) -> list[FeedItem]:
                     link=link,
                     summary=summary,
                     published=pub,
+                    thumbnail_url=thumbnail_url,
                 ),
             )
     return out
+
+
+_YOUTUBE_VIDEO_ID = re.compile(r"(?:[?&]v=|youtu\.be/|/shorts/)([A-Za-z0-9_-]{11})")
+
+
+def _canonical_youtube_thumbnail(link: str, feed_thumb: str | None) -> str | None:
+    """Feed thumbnails use i1-i4.ytimg.com; rewrite to i.ytimg.com (allowed by next/image)."""
+    m = _YOUTUBE_VIDEO_ID.search(link or "")
+    if m:
+        return f"https://i.ytimg.com/vi/{m.group(1)}/hqdefault.jpg"
+    return feed_thumb[:2048] if feed_thumb else None
 
 
 def _parse_rss(rss_el: ET.Element) -> list[FeedItem]:
