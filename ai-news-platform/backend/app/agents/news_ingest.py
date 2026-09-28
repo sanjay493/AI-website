@@ -510,6 +510,16 @@ def youtube_items_from_api_payload(payload: dict) -> list[FeedItem]:
     return out
 
 
+def split_region_codes(raw: str) -> list[str]:
+    """Comma-/space-separated region codes (e.g. "US,IN,GB"), upper-cased and de-duplicated."""
+    out: list[str] = []
+    for part in re.split(r"[\s,]+", raw or ""):
+        code = part.strip().upper()[:8]
+        if code and code not in out:
+            out.append(code)
+    return out or ["US"]
+
+
 async def _fetch_youtube_trending(
     client: httpx.AsyncClient,
     *,
@@ -610,16 +620,24 @@ async def run_news_ingest(
         candidates: list[FeedItem] = []
 
         if want_youtube:
-            yt_items, yt_err = await _fetch_youtube_trending(
-                client,
-                api_key=settings.effective_youtube_api_key or "",
-                region_code=settings.youtube_trending_region,
-                video_category_id=settings.youtube_trending_video_category_id,
-                max_results=yt_cap,
-            )
-            if yt_err:
-                errors.append(f"YouTube trending API: {yt_err}")
-            elif settings.youtube_trending_ai_only:
+            yt_items: list[FeedItem] = []
+            seen_links: set[str] = set()
+            for region in split_region_codes(settings.youtube_trending_region):
+                region_items, yt_err = await _fetch_youtube_trending(
+                    client,
+                    api_key=settings.effective_youtube_api_key or "",
+                    region_code=region,
+                    video_category_id=settings.youtube_trending_video_category_id,
+                    max_results=yt_cap,
+                )
+                if yt_err:
+                    errors.append(f"YouTube trending API ({region}): {yt_err}")
+                    continue
+                for it in region_items:
+                    if it.link not in seen_links:
+                        seen_links.add(it.link)
+                        yt_items.append(it)
+            if yt_items and settings.youtube_trending_ai_only:
                 needles = _effective_ai_trend_needles(settings.youtube_trending_ai_keywords)
                 before_n = len(yt_items)
                 yt_items = [

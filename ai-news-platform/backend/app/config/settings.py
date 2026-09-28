@@ -45,7 +45,17 @@ class Settings(BaseSettings):
         "https://arxiv.org/rss/cs.AI,"
         "https://blog.google/technology/ai/rss/,"
         "https://news.google.com/rss/search?q=artificial+intelligence&hl=en-US&gl=US&ceid=US:en,"
-        "https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg"
+        # AI YouTube channels (uploads via RSS; no API key needed).
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCbfYPyITQ-7l4upoX8nvctg,"  # Two Minute Papers
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCNJ1Ymd5yFuUPtn21xtRbbw,"  # AI Explained
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCZHmQk67mSJgfCCTn7xBfew,"  # Yannic Kilcher
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCawZsQWqfGSbCI5yjkdVkTA,"  # Matthew Berman
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCXUPKJO5MZQN11PqgIvyuvQ,"  # Andrej Karpathy
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCP7jMXSY2xbc3KCAE0MHQ-A,"  # Google DeepMind
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCXZCJLdBC09xxGZ6gcdrc6A,"  # OpenAI
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCrDwWp7EBBv4NwvScIpBDOA,"  # Anthropic
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCqcbQf6yw5KzRoDDcZ_wBSw,"  # Wes Roth
+        "https://www.youtube.com/feeds/videos.xml?channel_id=UCgfe2ooZD3VJPB6aJAnuQng"  # bycloud
     )
     news_ingest_user_agent: str = (
         "AISignalNewsAgent/1.0 (+https://github.com/sanjay493/AI-Website)"
@@ -56,11 +66,13 @@ class Settings(BaseSettings):
     youtube_api_key: str | None = None
     #: Server-side YouTube API key (restrict by server IP or VPC). Preferred for backend requests.
     youtube_api_key_server: str | None = None
-    youtube_trending_region: str = "US"
+    #: Comma-separated region codes; trending is fetched per region and de-duplicated.
+    youtube_trending_region: str = "US,IN,GB"
     #: Max videos per ingest; set 0 in request to skip trending even if key is set.
     youtube_trending_max_results: int = Field(default=40, ge=0, le=50)
-    #: e.g. "28" = Science & Technology; empty / unset = all categories in chart.
-    youtube_trending_video_category_id: str | None = Field(default="28")
+    #: e.g. "28" = Science & Technology; empty / unset = all categories in chart (default,
+    #: so more videos reach the AI filter).
+    youtube_trending_video_category_id: str | None = Field(default=None)
     #: If True (default), only trending videos whose title/snippet matches AI keywords stay.
     youtube_trending_ai_only: bool = Field(default=True)
     #: Extra comma-/newline-separated substrings matched case-insensitively against

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from app.agents.news_ingest import (
     FeedItem,
+    split_region_codes,
     _effective_ai_trend_needles,
     _to_article_create,
     parse_feed_xml,
@@ -172,3 +173,8 @@ def test_youtube_trend_ai_filter_ignores_ambiguous_names() -> None:
     needles = _effective_ai_trend_needles("")
     for title in ("Jean-Claude Van Damme's best splits", "Kimi Raikkonen onboard lap"):
         assert not youtube_trend_matches_ai_signals(_item(title), needles), title
+
+
+def test_split_region_codes() -> None:
+    assert split_region_codes("us, in,GB,us") == ["US", "IN", "GB"]
+    assert split_region_codes("") == ["US"]

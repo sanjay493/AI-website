@@ -22,3 +22,12 @@ def test_empty_feed_urls_env_falls_back_to_default_feeds(monkeypatch):
 def test_custom_feed_urls_env_is_kept(monkeypatch):
     monkeypatch.setenv("NEWS_INGEST_FEED_URLS", "https://example.com/feed.xml")
     assert Settings().news_ingest_feed_urls == "https://example.com/feed.xml"
+
+
+def test_default_youtube_sources(monkeypatch):
+    for name in ("NEWS_INGEST_FEED_URLS", "YOUTUBE_TRENDING_REGION", "YOUTUBE_TRENDING_VIDEO_CATEGORY_ID"):
+        monkeypatch.delenv(name, raising=False)
+    settings = Settings()
+    assert settings.youtube_trending_region == "US,IN,GB"
+    assert settings.youtube_trending_video_category_id is None
+    assert settings.news_ingest_feed_urls.count("youtube.com/feeds/videos.xml") == 10
