@@ -1,0 +1,23 @@
+# Oracle Cloud VM overlay: bind every published port to loopback so only host Nginx (80/443) is public.
+#
+#   docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.oracle.yml \
+#     --env-file .env.production up -d --build
+#
+# `!override` replaces the base port lists instead of merging them (Compose >= 2.24).
+
+services:
+  postgres:
+    ports: !override
+      - "127.0.0.1:5432:5432"
+
+  redis:
+    ports: !override
+      - "127.0.0.1:6379:6379"
+
+  api:
+    ports: !override
+      - "127.0.0.1:8000:8000"
+
+  web:
+    ports: !override
+      - "127.0.0.1:3000:3000"
