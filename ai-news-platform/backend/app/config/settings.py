@@ -94,6 +94,14 @@ class Settings(BaseSettings):
             return None
         return str(value).strip()
 
+    @field_validator("news_ingest_feed_urls", mode="before")
+    @classmethod
+    def empty_feed_urls_use_default(cls, value: object) -> object:
+        # Compose passes an unset NEWS_INGEST_FEED_URLS as "", which would disable all default feeds.
+        if value is None or (isinstance(value, str) and value.strip() == ""):
+            return cls.model_fields["news_ingest_feed_urls"].default
+        return value
+
     @field_validator("smtp_host", "smtp_from_email", "smtp_port", mode="before")
     @classmethod
     def empty_smtp_optional(cls, value: object) -> object:
