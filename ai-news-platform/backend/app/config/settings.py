@@ -94,6 +94,21 @@ class Settings(BaseSettings):
             return None
         return str(value).strip()
 
+    @field_validator("smtp_host", "smtp_from_email", "smtp_port", mode="before")
+    @classmethod
+    def empty_smtp_optional(cls, value: object) -> object:
+        # Compose passes unset vars as "" (e.g. SMTP_PORT: ${SMTP_PORT:-}).
+        if isinstance(value, str) and value.strip() == "":
+            return None
+        return value
+
+    @field_validator("smtp_use_tls", mode="before")
+    @classmethod
+    def empty_smtp_use_tls(cls, value: object) -> object:
+        if value is None or (isinstance(value, str) and value.strip() == ""):
+            return True
+        return value
+
     @property
     def effective_youtube_api_key(self) -> str | None:
         """Return the server API key if set, else fall back to the (possibly browser) key."""
