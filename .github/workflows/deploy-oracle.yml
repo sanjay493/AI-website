@@ -1,5 +1,5 @@
 # Deploy to the Oracle Cloud VM after CI passes on main (or run manually).
-# Required repository secrets: ORACLE_HOST, ORACLE_USER, ORACLE_SSH_KEY.
+# Runs on the self-hosted runner installed on the VM (label: oracle) — no SSH secrets needed.
 # Server layout: repo cloned at /opt/AI-website, .env.production in /opt/AI-website/ai-news-platform.
 name: Deploy Oracle
 
@@ -16,40 +16,51 @@ concurrency:
 
 jobs:
   deploy:
-    runs-on: ubuntu-latest
+    runs-on: [self-hosted, oracle]
+    timeout-minutes: 45
     if: >-
       ${{
         github.event_name == 'workflow_dispatch' ||
         (github.event.workflow_run.conclusion == 'success' && github.event.workflow_run.event == 'push')
       }}
+    defaults:
+      run:
+        working-directory: /opt/AI-website/ai-news-platform
+    env:
+      COMPOSE: docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.oracle.yml --env-file .env.production
     steps:
-      - name: Deploy over SSH
-        uses: appleboy/ssh-action@v1.2.2
-        with:
-          host: ${{ secrets.ORACLE_HOST }}
-          username: ${{ secrets.ORACLE_USER }}
-          key: ${{ secrets.ORACLE_SSH_KEY }}
-          command_timeout: 45m
-          script: |
-            set -euo pipefail
-            cd /opt/AI-website
-            git fetch origin --prune
-            git checkout -B main origin/main
+      - name: Update code
+        working-directory: /opt/AI-website
+        run: |
+          git fetch origin --prune
+          git checkout -B main origin/main
+          git log --oneline -1
 
-            cd ai-news-platform
-            test -f .env.production || { echo "Missing .env.production on server"; exit 1; }
+      - name: Check env file
+        run: test -f .env.production || { echo "Missing .env.production on server"; exit 1; }
 
-            COMPOSE="docker compose -f docker-compose.yml -f docker-compose.prod.yml -f docker-compose.oracle.yml --env-file .env.production"
+      # 1 GB RAM VM: build one image at a time, then swap containers in place (no full `down`).
+      - name: Build images
+        run: |
+          $COMPOSE build api
+          $COMPOSE build web
 
-            # 1 GB RAM VM: build one image at a time, then swap containers in place (no full `down`).
-            $COMPOSE build api
-            $COMPOSE build web
-            $COMPOSE up -d --remove-orphans
-            docker image prune -f
+      - name: Start stack
+        run: |
+          $COMPOSE up -d --remove-orphans
+          docker image prune -f
 
-            sudo cp deploy/nginx/oracle-ip.conf /etc/nginx/sites-available/ai-news
-            sudo nginx -t && sudo systemctl reload nginx
+      - name: Reload nginx
+        run: |
+          sudo cp deploy/nginx/oracle-ip.conf /etc/nginx/sites-available/ai-news
+          sudo nginx -t && sudo systemctl reload nginx
 
-            sleep 10
-            $COMPOSE ps
-            curl -fsS -o /dev/null -w "web: %{http_code}\n" http://127.0.0.1:3000/
+      - name: Smoke test
+        run: |
+          for i in $(seq 1 30); do
+            curl -fsS -o /dev/null http://127.0.0.1/ && curl -fsS -o /dev/null http://127.0.0.1/api/v1/articles && break
+            sleep 5
+          done
+          $COMPOSE ps
+          curl -fsS -o /dev/null -w "home: %{http_code}\n" http://127.0.0.1/
+          curl -fsS -o /dev/null -w "api: %{http_code}\n" http://127.0.0.1/api/v1/articles
