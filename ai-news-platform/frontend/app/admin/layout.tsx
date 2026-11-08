@@ -22,14 +22,8 @@ export default function AdminLayout({
             Articles
           </Link>
           <Link
-            href="/blog"
-            className="ml-auto text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
-          >
-            Live blog
-          </Link>
-          <Link
             href="/"
-            className="text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
+            className="ml-auto text-sm text-zinc-500 hover:text-zinc-800 dark:hover:text-zinc-300"
           >
             Homepage
           </Link>

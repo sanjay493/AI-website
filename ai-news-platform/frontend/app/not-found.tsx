@@ -10,7 +10,7 @@ export default function NotFound() {
         Page not found
       </h1>
       <p className="mt-3 text-zinc-600 dark:text-zinc-400">
-        That URL does not match a post or category in this boilerplate.
+        That page does not exist. The trending videos are on the home page.
       </p>
       <p className="mt-10">
         <Link

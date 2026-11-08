@@ -26,6 +26,15 @@ const nextConfig: NextConfig = {
       { protocol: "https", hostname: "yt3.ggpht.com", pathname: "/**" },
     ],
   },
+  /** Former blog/category/trending pages were folded into the home page — keep old links working. */
+  async redirects() {
+    return [
+      { source: "/blog", destination: "/", permanent: true },
+      { source: "/blog/:slug*", destination: "/", permanent: true },
+      { source: "/category/:slug*", destination: "/", permanent: true },
+      { source: "/youtube-trending", destination: "/", permanent: true },
+    ];
+  },
   async rewrites() {
     const origin = internalRewriteOrigin();
     return [
