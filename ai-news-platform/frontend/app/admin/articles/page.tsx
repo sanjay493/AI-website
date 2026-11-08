@@ -399,12 +399,6 @@ export default function AdminArticlesPage() {
                     >
                       Edit
                     </Link>
-                    <Link
-                      href={`/blog/${a.slug}`}
-                      className="text-zinc-500 hover:text-zinc-700 dark:hover:text-zinc-300"
-                    >
-                      View
-                    </Link>
                     <button
                       type="button"
                       disabled={bulkBusy}

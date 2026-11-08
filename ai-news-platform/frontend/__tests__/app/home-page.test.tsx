@@ -1,30 +1,19 @@
 import React from "react";
-import { render, screen } from "@testing-library/react";
+import { render, screen, within } from "@testing-library/react";
 import type { Article } from "@/lib/content";
 
-jest.mock("next/link", () => ({
+jest.mock("next/image", () => ({
   __esModule: true,
-  default ({
-    href,
-    children,
-    ...rest
-  }: React.ComponentPropsWithoutRef<"a"> & { href: string }) {
-    return (
-      <a href={href} {...rest}>
-        {children}
-      </a>
-    );
+  default: (props: React.ImgHTMLAttributes<HTMLImageElement> & { fill?: boolean }) => {
+    const { fill: _fill, ...rest } = props;
+    void _fill;
+    // eslint-disable-next-line @next/next/no-img-element, jsx-a11y/alt-text
+    return <img {...rest} />;
   },
 }));
 
 jest.mock("@/components/seo/json-ld", () => ({
   JsonLd: () => null,
-}));
-
-jest.mock("@/components/newsletter-form", () => ({
-  NewsletterForm: () => (
-    <div data-testid="newsletter-placeholder">Newsletter</div>
-  ),
 }));
 
 jest.mock("@/lib/public-articles", () => ({
@@ -34,81 +23,51 @@ jest.mock("@/lib/public-articles", () => ({
 import HomePage from "@/app/page";
 import { loadArticles } from "@/lib/public-articles";
 
-const mockArticles: Article[] = [
-  {
-    slug: "oldest",
-    title: "Oldest",
-    excerpt: "Oldest excerpt",
-    category: "news",
-    publishedAt: "2026-01-01",
-    readingTimeMinutes: 5,
-    paragraphs: [],
-  },
-  {
-    slug: "mid",
-    title: "Middle",
-    excerpt: "Middle excerpt",
-    category: "articles",
-    publishedAt: "2026-03-01",
-    readingTimeMinutes: 7,
-    paragraphs: [],
-  },
-  {
-    slug: "newest",
-    title: "Newest",
-    excerpt: "Newest excerpt",
-    category: "tutorials",
-    publishedAt: "2026-06-01",
-    readingTimeMinutes: 9,
-    paragraphs: [],
-  },
-  {
-    slug: "extra",
-    title: "Extra hidden from featured",
-    excerpt: "Hidden",
-    category: "trends",
-    publishedAt: "2026-02-01",
-    readingTimeMinutes: 3,
-    paragraphs: [],
-  },
+const base = { category: "news", readingTimeMinutes: 5, paragraphs: [] as string[] };
+
+const rows: Article[] = [
+  { ...base, slug: "older-video", title: "Older video", excerpt: "Older", publishedAt: "2026-01-01",
+    externalUrl: "https://www.youtube.com/watch?v=aaaaaaaaaaa", coverImageUrl: "https://i.ytimg.com/vi/aaaaaaaaaaa/hqdefault.jpg" },
+  { ...base, slug: "plain-article", title: "Plain article", excerpt: "Not a video", publishedAt: "2026-09-01" },
+  { ...base, slug: "newest-video", title: "Newest video", excerpt: "Newest", publishedAt: "2026-06-01",
+    externalUrl: "https://youtu.be/bbbbbbbbbbb", coverImageUrl: null },
+  { ...base, slug: "fake-video", title: "Lookalike domain", excerpt: "Spoof", publishedAt: "2026-07-01",
+    externalUrl: "https://youtube.com.evil.example/watch?v=ccccccccccc" },
 ];
 
 describe("Home page", () => {
-  beforeEach(() => {
-    jest.mocked(loadArticles).mockResolvedValue(mockArticles);
+  it("shows only YouTube videos, newest first, linking to YouTube, plus the course section", async () => {
+    jest.mocked(loadArticles).mockResolvedValue(rows);
+    render(await HomePage());
+
+    expect(
+      screen.getByRole("heading", { level: 1, name: /trending ai & tech videos on youtube/i }),
+    ).toBeInTheDocument();
+
+    const grid = screen.getByRole("region", { name: /trending videos/i });
+    const items = within(grid).getAllByRole("listitem");
+    expect(items).toHaveLength(2);
+    expect(within(items[0]).getByRole("heading", { name: "Newest video" })).toBeInTheDocument();
+    expect(within(items[1]).getByRole("heading", { name: "Older video" })).toBeInTheDocument();
+
+    const firstLink = within(items[0]).getByRole("link");
+    expect(firstLink).toHaveAttribute("href", "https://youtu.be/bbbbbbbbbbb");
+    expect(firstLink).toHaveAttribute("target", "_blank");
+    expect(firstLink).toHaveAttribute("rel", "noopener noreferrer");
+
+    expect(screen.queryByText("Plain article")).not.toBeInTheDocument();
+    expect(screen.queryByText("Lookalike domain")).not.toBeInTheDocument();
+
+    expect(screen.getByRole("heading", { name: /linux & powershell professional mastery/i })).toBeInTheDocument();
+    expect(screen.getByRole("link", { name: /start the course/i })).toHaveAttribute(
+      "href",
+      expect.stringMatching(/^https:\/\//),
+    );
   });
 
-  it("renders hero, featured posts (newest first, max 3), and categories", async () => {
-    const ui = await HomePage();
-    render(ui);
-
-    expect(
-      screen.getByRole("heading", {
-        level: 1,
-        name: /without the noise/i,
-      }),
-    ).toBeInTheDocument();
-
-    expect(loadArticles).toHaveBeenCalled();
-
-    expect(screen.getByRole("link", { name: /^newest$/i })).toHaveAttribute(
-      "href",
-      "/blog/newest",
-    );
-    expect(screen.getByRole("link", { name: /^middle$/i })).toBeInTheDocument();
-    expect(
-      screen.getByRole("link", {
-        name: /extra hidden from featured/i,
-      }),
-    ).toBeInTheDocument();
-    expect(
-      screen.queryByRole("link", { name: /^oldest$/i }),
-    ).not.toBeInTheDocument();
-
-    expect(screen.getByRole("link", { name: /^news\b/i })).toHaveAttribute(
-      "href",
-      "/category/news",
-    );
-    expect(screen.getByTestId("newsletter-placeholder")).toBeInTheDocument();
+  it("shows an empty state when no videos are available", async () => {
+    jest.mocked(loadArticles).mockResolvedValue([rows[1]]);
+    render(await HomePage());
+    expect(screen.getByText(/no trending videos are available/i)).toBeInTheDocument();
   });
 });

@@ -240,12 +240,6 @@ export default function EditArticlePage() {
           >
             {busy ? "Saving…" : "Save changes"}
           </button>
-          <Link
-            href={`/blog/${slug}`}
-            className="rounded-xl border border-zinc-300 px-5 py-2.5 text-sm font-semibold text-zinc-800 hover:bg-zinc-50 dark:border-zinc-600 dark:text-zinc-100 dark:hover:bg-zinc-900"
-          >
-            Preview live
-          </Link>
         </div>
       </form>
     </main>
